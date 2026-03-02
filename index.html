@@ -341,6 +341,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
   <button class="btn-ghost" style="width:100%" onclick="showView('training')">Zum Trainingsplan</button>
 </div>
 
+<div class="section-label" style="margin-top:20px">Diese Einheiten stehen an</div>
+<div class="day-cards" id="home-schedule"></div>
+
+
     </div>
   </div>
 </div>
@@ -360,7 +364,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
         <span class="probe-icon">🔬</span>
         <span class="probe-title">Einstiegstest starten</span>
       </div>
-      <div class="probe-desc" id="probe-hint">Teste deine Gewichte – danach werden passende Arbeitsgewichte als Platzhalter im Training angezeigt.</div>
+      <div class="probe-desc" id="probe-hint">Teste deine Gewichte – danach werden passende Arbeitsgewichte im Training vorausgefüllt.</div>
     </div>
 
     <div class="section-label" style="margin-top:20px">Trainingstage</div>
@@ -390,7 +394,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="done-title">EINHEIT DONE!</div>
     <div class="done-sub" id="done-sub"></div>
     <div class="done-stats" id="done-stats"></div>
-    <button class="btn-primary" style="max-width:240px" onclick="finishWorkout()">Zum Dashboard</button>
+    <button class="btn-primary" style="max-width:240px" onclick="finishWorkout()">Zur Übersicht</button>
   </div>
 </div>
 
@@ -417,6 +421,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <div class="page-title">FORT<span>SCHRITT</span></div>
     </div>
     <div class="ex-picker" id="ex-picker"></div>
+
+<div class="section-label" style="margin-top:10px">Trainingstag</div>
+<div class="ex-picker" id="stats-day-picker"></div>
+
     <div id="progress-content"></div>
     <div class="section-label" style="margin-top:10px">Logbuch</div>
     <div id="hist-list" style="padding:0 20px;display:flex;flex-direction:column;gap:10px;padding-bottom:100px"></div>
@@ -579,9 +587,9 @@ const EXERCISES = {
   // BRUST & TRIZEPS
   'Langhantel Bankdrücken': {
     muscles: 'Brust (Pectoralis major) · Trizeps · vordere Schulter',
-    description: 'Setup: Augen unter der Stange, Füße fest in den Boden. Schulterblätter zusammenziehen und nach unten "in die Hosentaschen" drücken. Leichtes Hohlkreuz, Po bleibt auf der Bank.<br><br>Bewegung: Stange kontrolliert zur unteren Brust (unterhalb der Brustwarzen) absenken. Ellenbogen ca. 45–70° zum Oberkörper. Von dort explosiv nach oben drücken, ohne die Schulterblätter zu verlieren.<br><br>Cues: "Brust hoch", "Stange zur Brust – nicht zum Hals", "Ellenbogen unter der Stange".',
-    mistakes: 'Schulterblätter lösen (Schulter wandert nach vorne), zu flach/zu hoch ansetzen (Hals/Schulter), Ellenbogen komplett seitlich abspreizen, Stange aufspringen lassen.',
-    breathing: 'Tief einatmen und Bauch/Brust "fest" machen vor dem Absenken. Beim Hochdrücken ausatmen (oder oben kurz ausatmen und neu einatmen).',
+    description: 'Setup: Augen unter der Stange, Füße fest in den Boden. Schulterblätter zusammenziehen und nach unten "in die Hosentaschen" drücken. Leichtes Hohlkreuz, Po bleibt auf der Bank.<br><br>Bewegung: Stange kontrolliert zur unteren Brust absenken. Ellenbogen ca. 45–70° zum Oberkörper. Von dort explosiv nach oben drücken, ohne die Schulterblätter zu verlieren.<br><br>Cues: "Brust hoch", "Ellenbogen unter der Stange", "Stange zur Brust – nicht zum Hals".',
+    mistakes: 'Schulterblätter lösen, Ellenbogen komplett seitlich abspreizen, Stange aufspringen lassen, Handgelenke abknicken.',
+    breathing: 'Tief einatmen und Bauch/Brust fest machen vor dem Absenken. Beim Hochdrücken ausatmen.',
     startWeight: '30–50% des Körpergewichts als Einstieg',
     beginnerKg: '20–40',
     intermediateKg: '50–80',
@@ -589,9 +597,9 @@ const EXERCISES = {
   },
   'Kurzhantel Fliegende': {
     muscles: 'Brust (breite Dehnung) · vordere Schulter',
-    description: 'Flach auf der Bank, Kurzhanteln über der Brust, Arme leicht gebeugt. Arme in einem Bogen weit zur Seite absenken, bis du eine tiefe Dehnung in der Brust spürst. Dann wieder zusammenführen wie eine Umarmung.',
-    mistakes: 'Zu schweres Gewicht führt dazu, dass du drückst statt fliegst. Leicht bleiben!',
-    breathing: 'Beim Absenken einatmen, beim Zusammenführen ausatmen.',
+    description: 'Setup: Schulterblätter zusammenziehen und unten halten, leichte Ellenbogenbeugung. Hanteln über der Brust, Handflächen zueinander.<br><br>Bewegung: Arme in einem breiten Bogen absenken bis zur deutlichen Brust-Dehnung (kein Schmerz). Dann wie eine Umarmung zurückführen – Brust zusammenziehen.<br><br>Cues: "Bogen, nicht drücken", "Ellenbogen weich", "Dehnung kontrolliert".',
+    mistakes: 'Zu schwer → wird zum Drücken, zu tief absenken (Schulterstress), Ellenbogen komplett durchstrecken.',
+    breathing: 'Beim Absenken einatmen, beim Schließen ausatmen.',
     startWeight: '8–15 kg pro Hand für Einsteiger',
     beginnerKg: '8–15',
     intermediateKg: '14–22',
@@ -599,9 +607,9 @@ const EXERCISES = {
   },
   'Schrägbankdrücken': {
     muscles: 'Obere Brust · vordere Schulter · Trizeps',
-    description: 'Bank auf 30–45° stellen. Bewegung wie flaches Bankdrücken – aber der Fokus liegt auf dem oberen Brustbereich. Schulterblätter zusammenziehen, kontrolliert absenken.',
-    mistakes: 'Bank nicht über 45° stellen – dann wird es zu sehr zur Schulterübung.',
-    breathing: 'Einatmen runter, ausatmen beim Drücken.',
+    description: 'Setup: Bank 30–45°. Schulterblätter wie beim Bankdrücken fixieren (zusammen + nach unten). Füße stabil. Stange über der oberen Brust starten.<br><br>Bewegung: Kontrolliert zur oberen/mittleren Brust absenken, Ellenbogen leicht unter der Stange halten. Hochdrücken, ohne die Schultern nach vorne rutschen zu lassen.<br><br>Cues: "Schulterblätter fest", "Ellenbogen unter der Stange", "Brust hoch".',
+    mistakes: 'Bank zu steil (wird Schulterdrücken), Schulter nach vorne kippt, Stange zu hoch Richtung Hals.',
+    breathing: 'Einatmen beim Absenken, ausatmen beim Drücken.',
     startWeight: 'Etwas leichter als flaches Bankdrücken',
     beginnerKg: '16–32',
     intermediateKg: '40–65',
@@ -609,9 +617,9 @@ const EXERCISES = {
   },
   'Trizeps Dips': {
     muscles: 'Trizeps · untere Brust · vordere Schulter',
-    description: 'Hände auf Stufe oder Hantelbank, Finger nach vorne. Rücken bleibt nahe an der Bank. Langsam absenken bis die Ellenbogen 90° erreichen, dann drücken. Körper leicht nach vorne geneigt = mehr Trizeps.',
-    mistakes: 'Zu weit nach vorne lehnen belastet die Schultern. Ellenbogen nicht nach außen drücken lassen.',
-    breathing: 'Absenken einatmen, drücken ausatmen.',
+    description: 'Setup: Hände schulterbreit auf Bank/Stufe, Finger nach vorne. Füße auf Boden (leichter) oder Beine gestreckt (schwerer). Rücken nah an der Bank.<br><br>Bewegung: Langsam absenken bis ca. 90° im Ellenbogen. Dann aus dem Trizeps hochdrücken. Wenn du mehr Brust willst: Oberkörper leicht nach vorn.<br><br>Cues: "Ellenbogen nach hinten", "Schultern unten", "kontrolliert".',
+    mistakes: 'Schultern hochziehen, zu tief runter (Schulter), Ellenbogen nach außen.',
+    breathing: 'Einatmen runter, ausatmen hoch.',
     startWeight: 'Eigenkörpergewicht, dann mit Gewicht auf den Oberschenkeln',
     beginnerKg: 'Körpergewicht',
     intermediateKg: '+5–20kg',
@@ -619,8 +627,8 @@ const EXERCISES = {
   },
   'Enges Bankdrücken': {
     muscles: 'Trizeps · innere Brust · vordere Schulter',
-    description: 'Griffbreite: etwa Schulterbreite (oder etwas enger). Ellenbogen bleiben nah am Körper beim Absenken – das ist entscheidend für den Trizeps-Fokus. Stange zur unteren Brust führen.',
-    mistakes: 'Zu enger Griff belastet die Handgelenke unnötig.',
+    description: 'Setup: Griff etwa schulterbreit (nicht extrem eng). Schulterblätter fixieren wie beim Bankdrücken, Handgelenke gerade.<br><br>Bewegung: Stange zur unteren Brust absenken, Ellenbogen nah am Körper. Hochdrücken und oben Trizeps anspannen.<br><br>Cues: "Ellenbogen eng", "Handgelenke gerade", "drück den Boden weg".',
+    mistakes: 'Zu enger Griff (Handgelenk), Ellenbogen flaren, Schulter verliert Spannung.',
     breathing: 'Einatmen runter, ausatmen hoch.',
     startWeight: 'Leichter als normales Bankdrücken',
     beginnerKg: '20–40',
@@ -630,9 +638,9 @@ const EXERCISES = {
   // RÜCKEN & BIZEPS
   'Langhantel Rudern': {
     muscles: 'Rücken (Latissimus, mittlerer Rücken) · Bizeps · hintere Schulter',
-    description: 'Setup: Füße hüft- bis schulterbreit. Hüfte nach hinten schieben, Oberkörper etwa 30–45° nach vorn, Rücken neutral. Griff schulterbreit, Stange hängt über dem Mittelfuß.<br><br>Bewegung: Ziehe die Stange Richtung Bauchnabel/untere Rippen. Ellenbogen nah am Körper. Oben kurz Schulterblätter zusammenziehen, dann kontrolliert ablassen – Spannung behalten.<br><br>Cues: "Rücken lang", "Zieh mit Ellenbogen", "Bauch fest".',
-    mistakes: 'Runder Rücken, Schwung aus dem Oberkörper, Stange zu hoch Richtung Brust ziehen, Schulter hochziehen statt Schulterblätter zusammenführen.',
-    breathing: 'Einatmen vor dem Ziehen, beim Ziehen ausatmen. Optional: mit Bauchspannung halten und zwischen Wiederholungen neu atmen.',
+    description: 'Setup: Hüfte nach hinten, Oberkörper 30–45° vor. Rücken neutral, Bauch fest. Stange über Mittelfuß, Griff schulterbreit.<br><br>Bewegung: Ziehe zur unteren Rippe/Bauchnabel. Ellenbogen nah am Körper. Oben Schulterblätter zusammen, dann kontrolliert ablassen.<br><br>Cues: "Zieh mit Ellenbogen", "Rücken lang", "Bauch fest".',
+    mistakes: 'Runder Rücken, Schwung, Stange zu hoch zur Brust, Schulter hochziehen.',
+    breathing: 'Einatmen vor dem Ziehen, beim Ziehen ausatmen.',
     startWeight: '40–60% des Körpergewichts',
     beginnerKg: '25–50',
     intermediateKg: '60–90',
@@ -640,9 +648,9 @@ const EXERCISES = {
   },
   'Einarmiges Rudern': {
     muscles: 'Rücken (Latissimus) · Bizeps · hintere Schulter',
-    description: 'Ein Knie und eine Hand auf die Bank abstützen. Rücken parallel zum Boden. Kurzhantel mit gestrecktem Arm nach unten, dann Ellenbogen hoch zur Decke ziehen. Maximale Streckung und Kontraktion.',
-    mistakes: 'Den Rumpf nicht mitdrehen – der Rücken arbeitet, nicht die Schulter.',
-    breathing: 'Ausatmen beim Hochziehen, einatmen beim Senken.',
+    description: 'Setup: Ein Knie + eine Hand auf die Bank, Rücken parallel zum Boden. Schulter weg vom Ohr. Hantel hängt unter der Schulter.<br><br>Bewegung: Ziehe Ellenbogen Richtung Hüfte (nicht Richtung Schulter). Oben kurz Schulterblatt nach hinten/unten, dann langsam ablassen bis volle Streckung.<br><br>Cues: "Ellenbogen zur Hüfte", "Schulter unten", "voll strecken".',
+    mistakes: 'Rumpf aufdrehen, Schulter hochziehen, zu kurze Range of Motion.',
+    breathing: 'Ausatmen beim Ziehen, einatmen beim Absenken.',
     startWeight: '15–25 kg pro Hand',
     beginnerKg: '12–22',
     intermediateKg: '22–36',
@@ -650,9 +658,9 @@ const EXERCISES = {
   },
   'Kreuzheben': {
     muscles: 'Gesamter Rücken · Gesäß · Oberschenkelrückseite · Core',
-    description: 'Setup: Stange über dem Mittelfuß. Schienbein nah an die Stange, Hüfte so hoch wie nötig, so tief wie möglich. Rücken neutral, Brust "stolz", Lat aktiv (Stange zu dir "ziehen"). Hände greifen knapp außerhalb der Beine.<br><br>Bewegung: Drücke den Boden weg (Beine), Stange bleibt am Körper. Hüfte und Schultern steigen zusammen. Oben aufrecht stehen (keine Überstreckung). Absetzen: Hüfte nach hinten, Stange an den Beinen entlang, dann Knie beugen.<br><br>Cues: "Bauch hart", "Stange am Körper", "Boden wegdrücken".',
-    mistakes: 'Runder Rücken, Stange weit vom Körper, Hüfte schießt zuerst hoch (Good-Morning-Lift), oben ins Hohlkreuz reißen.',
-    breathing: 'Vor dem Lift tief einatmen, Bauch anspannen (als ob jemand dir in den Bauch boxt). Oben kontrolliert ausatmen.',
+    description: 'Setup: Stange über Mittelfuß. Schienbein nah an die Stange, Rücken neutral, Brust stolz. Lat aktiv (Stange "zu dir ziehen"). Hände knapp außerhalb der Beine.<br><br>Bewegung: Drücke den Boden weg, Stange bleibt am Körper. Hüfte und Schultern steigen zusammen. Oben aufrecht, keine Überstreckung. Absetzen: Hüfte zurück, Stange an den Beinen entlang.<br><br>Cues: "Bauch hart", "Stange am Körper", "Boden wegdrücken".',
+    mistakes: 'Runder Rücken, Stange weg vom Körper, Hüfte schießt hoch, oben ins Hohlkreuz reißen.',
+    breathing: 'Vor dem Lift tief einatmen, Bauch anspannen, oben kontrolliert ausatmen.',
     startWeight: '40–60% des Körpergewichts für sicheren Einstieg',
     beginnerKg: '30–60',
     intermediateKg: '80–130',
@@ -660,9 +668,9 @@ const EXERCISES = {
   },
   'Kurzhantel Bizepscurl': {
     muscles: 'Bizeps · Unterarm',
-    description: 'Stehend oder sitzend, Kurzhanteln hängen, Handgelenke in neutraler Position. Ellenbogen bleibt fixiert seitlich am Körper. Kurzhantel nach oben curlen, dabei Handgelenk leicht nach außen drehen. Langsam und kontrolliert wieder runter.',
-    mistakes: 'Keine Schwungbewegung mit dem Oberkörper! Der Ellenbogen ist die Achse.',
-    breathing: 'Beim Curlen ausatmen, beim Senken einatmen.',
+    description: 'Setup: Aufrecht stehen, Core fest, Schulterblätter neutral. Ellenbogen dicht am Oberkörper, Handgelenke gerade.<br><br>Bewegung: Ohne Schwung curlen. Oben kurz anspannen, langsam ablassen bis fast komplett gestreckt. Optional: oben leicht supinieren (Handfläche mehr nach oben).<br><br>Cues: "Ellenbogen bleibt", "langsam runter", "kein Schwung".',
+    mistakes: 'Schwung aus Rücken, Ellenbogen wandert nach vorne, Handgelenk knickt.',
+    breathing: 'Ausatmen hoch, einatmen runter.',
     startWeight: '10–18 kg pro Hand',
     beginnerKg: '8–14',
     intermediateKg: '14–22',
@@ -670,8 +678,8 @@ const EXERCISES = {
   },
   'Hammercurl': {
     muscles: 'Langer Bizepskopf · Brachialis · Unterarm',
-    description: 'Wie Bizepscurl, aber die Handflächen zeigen zum Körper (wie ein Hammer halten). Die Bewegung ist identisch, nur die Griffhaltung ändert sich. Trainiert den Bizeps anders und stärkt den Unterarm.',
-    mistakes: 'Ellenbogen nach hinten wandern lassen – Ellenbogen bleibt vorne.',
+    description: 'Setup: Wie Curl, aber Neutralgriff (Daumen zeigt nach oben). Ellenbogen eng am Körper.<br><br>Bewegung: Curlen ohne Rotation. Oben kurz halten, langsam ablassen. Fokus auf Brachialis/Unterarm, dadurch oft stabiler als klassischer Curl.<br><br>Cues: "Griff neutral", "Ellenbogen still", "kontrolliert".',
+    mistakes: 'Schwung, Schulter hochziehen, zu schnelles Ablassen.',
     breathing: 'Ausatmen hoch, einatmen runter.',
     startWeight: 'Gleich wie Bizepscurl',
     beginnerKg: '8–14',
@@ -681,9 +689,9 @@ const EXERCISES = {
   // BEINE & SCHULTERN
   'Langhantel Kniebeugen': {
     muscles: 'Oberschenkel (Quadrizeps, Ischio) · Gesäß · Core · Rücken',
-    description: 'Setup: Stange auf dem oberen Rücken (nicht auf dem Nacken). Füße schulterbreit, Zehen leicht nach außen. Bauch fest, Brust hoch, Blick nach vorn.<br><br>Bewegung: Hüfte und Knie gleichzeitig beugen. Knie folgen den Zehen (nicht nach innen). Tiefe: mindestens parallel, solange Rücken neutral bleibt. Hoch: aus dem Mittelfuß/Ferse drücken, Knie weiter nach außen führen.<br><br>Cues: "Knie nach außen", "Brust hoch", "Fersen am Boden".',
-    mistakes: 'Knie fallen nach innen, Fersen heben ab, Rücken rund, zu wenig Tiefe durch fehlende Hüftbewegung.',
-    breathing: 'Oben einatmen, Bauchspannung halten bis über den schwierigsten Punkt, dann ausatmen.',
+    description: 'Setup: Stange auf oberem Rücken, Füße schulterbreit, Zehen leicht nach außen. Bauch fest, Brust hoch, Blick nach vorn.<br><br>Bewegung: Hüfte + Knie gleichzeitig beugen. Knie folgen Zehen (nicht nach innen). Tiefe: mindestens parallel, solange Rücken neutral bleibt. Hoch: aus Mittelfuß/Ferse drücken, Knie nach außen halten.<br><br>Cues: "Knie nach außen", "Brust hoch", "Fersen am Boden".',
+    mistakes: 'Knie fallen nach innen, Fersen heben ab, Rücken rund, zu wenig Tiefe durch fehlende Hüfte.',
+    breathing: 'Oben einatmen, Spannung halten bis über den schwierigsten Punkt, dann ausatmen.',
     startWeight: '50% des Körpergewichts als sicherer Einstieg',
     beginnerKg: '30–60',
     intermediateKg: '70–120',
@@ -691,9 +699,9 @@ const EXERCISES = {
   },
   'Kurzhantel Ausfallschritte': {
     muscles: 'Oberschenkel · Gesäß · Gleichgewicht · Core',
-    description: 'Aufrecht stehen, Kurzhanteln in den Händen. Einen großen Schritt nach vorne machen, Hüfte gerade nach unten sinken lassen, bis das hintere Knie fast den Boden berührt. Dann aus dem vorderen Fuß hochdrücken.',
-    mistakes: 'Vorderes Knie nicht über die Zehenspitze. Oberkörper nach vorne fallen lassen.',
-    breathing: 'Beim Absenken einatmen, beim Aufstehen ausatmen.',
+    description: 'Setup: Aufrecht stehen, Core fest. Schritt so groß, dass das vordere Schienbein am tiefsten Punkt ungefähr senkrecht bleibt.<br><br>Bewegung: Kontrolliert absenken, hinteres Knie Richtung Boden. Druck beim Hochkommen über den vorderen Fuß (ganzer Fuß). Seitenwechsel gleichmäßig.<br><br>Cues: "Großer Schritt", "Oberkörper aufrecht", "Druck über vorderen Fuß".',
+    mistakes: 'Zu kleiner Schritt (Knie schiebt weit vor), Oberkörper kippt, instabiler Stand.',
+    breathing: 'Einatmen runter, ausatmen hoch.',
     startWeight: '10–20 kg pro Hand',
     beginnerKg: '6–14',
     intermediateKg: '14–24',
@@ -701,8 +709,8 @@ const EXERCISES = {
   },
   'Wadenheben (Stufe)': {
     muscles: 'Wadenmuskel (Gastrocnemius & Soleus)',
-    description: 'Vorderfuß auf der Stufe, Ferse hängt frei. Langsam so weit wie möglich absenken (volle Dehnung spüren), dann auf Zehenspitzen stellen und oben kurz halten. Die langsame exzentrische Phase macht den Unterschied!',
-    mistakes: 'Zu schnell arbeiten. Die Dehnung unten weglassen.',
+    description: 'Setup: Vorderfuß auf Stufe, Ferse frei. Halte dich leicht fest für Balance. Knie gestreckt (mehr Gastrocnemius) oder leicht gebeugt (mehr Soleus).<br><br>Bewegung: Langsam absenken bis maximale Dehnung, dann kraftvoll hoch auf die Zehenspitze und oben 1 Sekunde halten. Langsame exzentrische Phase ist entscheidend.<br><br>Cues: "Ganz runter", "oben halten", "langsam ablassen".',
+    mistakes: 'Zu kurze Bewegung, wippen/schnell, Gewicht auf Außenkante.',
     breathing: 'Oben ausatmen, unten einatmen.',
     startWeight: 'Körpergewicht, dann mit Gewicht oder einbeinig',
     beginnerKg: 'Körpergewicht',
@@ -711,9 +719,9 @@ const EXERCISES = {
   },
   'Schulterdrücken': {
     muscles: 'Schulter (Deltoideus) · Trizeps · obere Brust',
-    description: 'Setup: Kurzhanteln auf Schulterhöhe, Handgelenke gerade. Ellenbogen leicht vor dem Körper (nicht weit hinten). Po/Rumpf fest, Rippen "unten" (kein Hohlkreuz).<br><br>Bewegung: Drücke die Hanteln in einer leichten Kurve über den Kopf, so dass sie oben über der Schulter landen. Kontrolliert absenken bis etwa Kinn-/Schulterhöhe.<br><br>Cues: "Rippen runter", "Handgelenk über Ellenbogen", "Kopf leicht nach hinten – dann wieder durch".',
-    mistakes: 'Hohlkreuz/Überstreckung, Hanteln zu weit vor dem Körper, Handgelenke knicken ab, Schulter hochziehen.',
-    breathing: 'Einatmen unten, beim Hochdrücken ausatmen.',
+    description: 'Setup: Hanteln auf Schulterhöhe, Handgelenke gerade. Ellenbogen leicht vor dem Körper. Po/Rumpf fest, Rippen unten (kein Hohlkreuz).<br><br>Bewegung: Drücke die Hanteln in leichter Kurve über den Kopf, oben über der Schulter stapeln. Kontrolliert absenken bis Kinn-/Schulterhöhe.<br><br>Cues: "Rippen runter", "Handgelenk über Ellenbogen", "Kopf durch".',
+    mistakes: 'Hohlkreuz, Hanteln zu weit vor dem Körper, Handgelenke knicken, Schulter hochziehen.',
+    breathing: 'Einatmen unten, ausatmen beim Drücken.',
     startWeight: '15–25 kg pro Hand',
     beginnerKg: '8–16',
     intermediateKg: '16–28',
@@ -721,9 +729,9 @@ const EXERCISES = {
   },
   'Kurzhantel Seitheben': {
     muscles: 'Seitlicher Schulterkopf (mittlerer Deltoideus)',
-    description: 'Stehend, Kurzhanteln seitlich am Körper. Arme leicht gebeugt, Hände drehen den kleinen Finger minimal nach oben. Arme seitlich bis Schulterhöhe heben, kurz halten, langsam absenken.',
-    mistakes: 'Zu schweres Gewicht! Das ist eine Isolationsübung. Oberkörper nicht schwingen.',
-    breathing: 'Beim Heben ausatmen, beim Senken einatmen.',
+    description: 'Setup: Leicht nach vorn gebeugt (minimal), Core fest. Ellenbogen leicht gebeugt, Handgelenke neutral. Start mit Hanteln neben dem Körper.<br><br>Bewegung: Arme seitlich bis etwa Schulterhöhe anheben. Oben kurz halten, langsam absenken. Fokus: seitlicher Schulterkopf – klein anfangen, sauber bleiben.<br><br>Cues: "Führ mit Ellenbogen", "kleiner Finger minimal höher", "langsam runter".',
+    mistakes: 'Zu schwer → Schwung, Schultern hochziehen, Arme über Schulterhöhe reißen.',
+    breathing: 'Ausatmen hoch, einatmen runter.',
     startWeight: '6–12 kg – leichter als du denkst!',
     beginnerKg: '4–10',
     intermediateKg: '10–18',
@@ -772,7 +780,7 @@ let activeDay=null, curExIdx=0, wkData={}, wkStart=null;
 let timerInterval=null, timerRem=0, timerTotal=0;
 let probeIdx=0, probeData={}, probeEffort={};
 let wizStep=0, wizGoal=null, wizDays=null, wizTime=null, wizLevel=null;
-let progressChart=null, selectedEx=null;
+let progressChart=null, selectedEx=null, selectedDay=null;
 
 // ============================================================
 // FIREBASE SETUP
@@ -858,10 +866,10 @@ function showView(name){
   if(nb) nb.classList.add('active');
 
   if(name==='home')renderHome();
+  if(name==='training')renderTraining();
   if(name==='stats')renderStats();
   if(name==='probe')initProbe();
   if(name==='plan')initPlan();
-  if(name==='training')renderTraining();
 }
 
 
@@ -1039,18 +1047,45 @@ function renderHome(){
     const tTitle=document.getElementById('next-workout-title');
     const tDesc=document.getElementById('next-workout-desc');
     const card=document.getElementById('next-workout-card');
-    if(tTitle && tDesc && card && typeof getNextWorkoutSuggestion==='function'){
-      const sug = getNextWorkoutSuggestion();
+    const sug = (typeof getNextWorkoutSuggestion==='function') ? getNextWorkoutSuggestion() : {type:'no-plan'};
+    if(tTitle && tDesc && card){
       if(sug.type==='no-plan'){
         tTitle.textContent = 'Plan erstellen';
         tDesc.textContent = 'Starte mit deinem Ziel – danach schlägt dir die App deine nächste Einheit vor.';
         card.onclick = () => showView('plan');
       }else{
         tTitle.textContent = sug.day.day.toUpperCase() + ': ' + (sug.day.focus || 'Training');
-        const lastTxt = sug.last ? ('Zuletzt: ' + new Date(sug.last).toLocaleDateString('de-DE')) : 'Noch nie gemacht';
+        const lastTxt = sug.last ? ('Zuletzt: ' + formatLastDate(sug.last)) : 'Noch nie gemacht';
         tDesc.textContent = lastTxt + ' · Tippe zum Starten.';
         card.onclick = () => startWorkout(sug.day.id);
       }
+    }
+
+    // Schedule list (all days until cycle repeats)
+    const schedule=document.getElementById('home-schedule');
+    if(schedule && typeof getActivePlan==='function'){
+      const plan = getActivePlan();
+      schedule.innerHTML='';
+      (plan.days||[]).forEach(d=>{
+        const last = (typeof getLastDateForDay==='function') ? getLastDateForDay(d.id) : null;
+        const lastText = formatLastDate(last);
+        const exNames = (d.exercises||[]).map(e=>e.name).slice(0,4);
+        const exText = exNames.join(' · ') + ((d.exercises||[]).length>4 ? ' · +' + ((d.exercises||[]).length-4) : '');
+
+        const dc=document.createElement('div');
+        dc.className='day-card';
+        dc.onclick=()=>startWorkout(d.id);
+        dc.innerHTML=`
+          <div class="day-accent"></div>
+          <div class="day-card-top">
+            <div class="day-tag">${(d.day||'').toUpperCase()}</div>
+            <div class="day-last">${lastText}</div>
+          </div>
+          <div class="day-name">${d.focus || 'Training'}</div>
+          <div class="day-exlist">${exText || '—'}</div>
+        `;
+        schedule.appendChild(dc);
+      });
     }
   }catch(e){
     console.error('renderHome failed', e);
@@ -1060,6 +1095,7 @@ function renderHome(){
 // ============================================================
 // WORKOUT
 // ============================================================
+
 function startWorkout(day){
   activeDay=day;curExIdx=0;wkData={};wkStart=Date.now();
   const planAll = getActivePlan();
@@ -1085,13 +1121,23 @@ function startWorkout(day){
     let setsHtml='';
     for(let s=0;s<ex.sets;s++){
       const lastSet=lastWk?lastWk.sets.find(ls=>ls.exIdx===idx&&ls.setIdx===s):null;
-      const phKg=lastSet?lastSet.kg:(probeKg!=null?probeKg:(info.beginnerKg?info.beginnerKg.split('–')[0]:'—'));
-      const phReps=lastSet?lastSet.reps:ex.reps;
+
+      const baseKg = lastSet ? parseFloat(lastSet.kg) : (probeKg!=null ? parseFloat(probeKg) : (info.beginnerKg?parseFloat(String(info.beginnerKg).split('–')[0]):''));
+      const kgVal = (baseKg!=='' && !isNaN(baseKg)) ? String(baseKg) : '';
+
+      const repVal = lastSet ? String(lastSet.reps) : repsDefaultFromRange(ex.reps);
+
       setsHtml+=`<div class="set-row" id="set-${idx}-${s}">
         <div class="set-num">${s+1}</div>
         <div class="set-inputs">
-          <div class="set-fw"><input class="set-field" type="number" inputmode="decimal" placeholder="${phKg}" id="kg-${idx}-${s}" min="0" step="0.5"><div class="set-fl">KG</div></div>
-          <div class="set-fw"><input class="set-field" type="number" inputmode="numeric" placeholder="${phReps}" id="reps-${idx}-${s}" min="0"><div class="set-fl">WDH.</div></div>
+          <div class="set-fw">
+            <input class="set-field" type="number" inputmode="decimal" value="${kgVal}" placeholder="${kgVal || ''}" id="kg-${idx}-${s}" min="0" step="0.5">
+            <div class="set-fl">KG</div>
+          </div>
+          <div class="set-fw">
+            <input class="set-field" type="number" inputmode="numeric" value="${repVal}" placeholder="${ex.reps}" id="reps-${idx}-${s}" min="0">
+            <div class="set-fl">WDH.</div>
+          </div>
         </div>
         <button class="set-check" id="check-${idx}-${s}" onclick="toggleSet(${idx},${s},${ex.rest})">✓</button>
       </div>`;
@@ -1099,29 +1145,39 @@ function startWorkout(day){
 
     const weightInfo=info.beginnerKg?`<div class="weight-rec">
       <div class="weight-chip"><div class="weight-chip-val">${info.beginnerKg}</div><div class="weight-chip-lbl">Einsteiger kg</div></div>
-      ${info.intermediateKg?`<div class=\"weight-chip\"><div class=\"weight-chip-val\">${info.intermediateKg}</div><div class=\"weight-chip-lbl\">Fortgesch. kg</div></div>`:''}
+      ${info.intermediateKg?`<div class="weight-chip"><div class="weight-chip-val">${info.intermediateKg}</div><div class="weight-chip-lbl">Fortgesch. kg</div></div>`:''}
     </div>`:'';
 
-    const probeBadge = (probeKg!=null)
-      ? `<div class="pr-badge" style="margin:10px 0 14px">🎯 <span style="font-size:12px;color:var(--text-mid)">Platzhalter aus Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong></span></div>`
-      : '';
+    const sourceLine = probeKg!=null ? `🎯 Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong>` : '—';
 
     block.innerHTML=`
       <div class="ex-meta">Übung ${idx+1} von ${(planDay.exercises||[]).length} · ${ex.sets} Sätze à ${ex.reps} Wdh.</div>
       <div class="ex-name">${ex.name}</div>
       <div class="ex-muscles">${info.muscles || ''}</div>
-      ${probeBadge}
+
+      <div class="pr-badge" style="margin:10px 0 14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px">
+          <div style="font-size:12px;color:var(--text-mid)">${sourceLine}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-outline" style="padding:8px 10px" onclick="event.stopPropagation();adjustExerciseKg(${idx},-2.5)">-2,5</button>
+            <button class="btn-outline" style="padding:8px 10px" onclick="event.stopPropagation();adjustExerciseKg(${idx},2.5)">+2,5</button>
+          </div>
+        </div>
+      </div>
+
       <button class="ex-info-toggle" onclick="toggleInfo(${idx})" id="info-toggle-${idx}">
         <span>📖</span><span>Technik & Empfehlungen</span><span class="arrow">▼</span>
       </button>
       <div class="ex-info-panel" id="info-panel-${idx}">
         <div class="ex-info-section"><div class="ex-info-label">Ausführung</div><div class="ex-info-text">${info.description || ''}</div></div>
-        ${info.mistakes?`<div class=\"ex-info-section\"><div class=\"ex-info-hint\">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
-        ${info.breathing?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Atmung</div><div class=\"ex-info-text\">${info.breathing}</div></div>`:''}
-        ${info.beginnerKg?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Empfohlene Gewichte</div>${weightInfo}</div>`:''}
+        ${info.mistakes?`<div class="ex-info-section"><div class="ex-info-hint">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
+        ${info.breathing?`<div class="ex-info-section"><div class="ex-info-label">Atmung</div><div class="ex-info-text">${info.breathing}</div></div>`:''}
+        ${info.beginnerKg?`<div class="ex-info-section"><div class="ex-info-label">Empfohlene Gewichte</div>${weightInfo}</div>`:''}
       </div>
+
       <div class="sets-list" style="margin-top:2px">${setsHtml}</div>
     `;
+
     scroll.appendChild(block);
   });
 
@@ -1138,6 +1194,7 @@ function startWorkout(day){
   updateWkNav();
   showView('workout');
 }
+
 
 function toggleInfo(idx){
   const panel=document.getElementById('info-panel-'+idx);
@@ -1283,15 +1340,40 @@ function enableDragScroll(el){
     el.classList.remove('dragging');
   };
 
-  // Maus
   el.addEventListener('mousedown', (e)=>{ start(e.pageX); });
   el.addEventListener('mousemove', (e)=>{ if(!isDown) return; e.preventDefault(); move(e.pageX); });
   window.addEventListener('mouseup', end);
 
-  // Touch
   el.addEventListener('touchstart', (e)=>{ if(!e.touches || !e.touches[0]) return; start(e.touches[0].pageX); }, {passive:true});
   el.addEventListener('touchmove', (e)=>{ if(!e.touches || !e.touches[0]) return; move(e.touches[0].pageX); }, {passive:true});
   el.addEventListener('touchend', end);
+}
+
+function repsDefaultFromRange(r){
+  if(!r) return '';
+  const s = String(r).replace(/\s/g,'');
+  if(/^\d+$/.test(s)) return s;
+  const m = s.match(/(\d+)[–-](\d+)/);
+  if(!m) return '';
+  const a = parseInt(m[1],10);
+  const b = parseInt(m[2],10);
+  return String(Math.round((a+b)/2));
+}
+
+function formatLastDate(d){
+  if(!d) return 'Noch nie';
+  try{ return new Date(d).toLocaleDateString('de-DE'); }catch(e){ return 'Noch nie'; }
+}
+
+function adjustExerciseKg(exIdx, delta){
+  const fields = document.querySelectorAll(`[id^="kg-${exIdx}-"]`);
+  fields.forEach(f=>{
+    const v = parseFloat(f.value);
+    if(!isNaN(v)){
+      const nv = Math.max(0, v + delta);
+      f.value = (Math.round(nv*2)/2).toString();
+    }
+  });
 }
 
 
@@ -1358,7 +1440,7 @@ function renderSavedPlanPanel(){
   }
 
   histPanel.style.display='block';
-  const items = hist.slice(0,8).map(p=>{
+  const items = hist.slice(0,10).map(p=>{
     const d = p.createdAt ? new Date(p.createdAt) : (p.id ? new Date(Number(p.id)) : null);
     const ds = d ? d.toLocaleDateString('de-DE') : '';
     const days = (p.days||[]).length;
@@ -1392,42 +1474,79 @@ function renderSavedPlanPanel(){
 // ============================================================
 // STATS
 // ============================================================
+
 function renderStats(){
-  const allEx=[...new Set(Object.values(PLAN).flatMap(p=>p.exercises.map(e=>e.name)))];
-  if(!selectedEx)selectedEx=allEx[0];
+  const plan = getActivePlan();
+  const dayPicker = document.getElementById('stats-day-picker');
+  const exPicker = document.getElementById('ex-picker');
 
-  const picker=document.getElementById('ex-picker');
-  picker.innerHTML='';
-  allEx.forEach(name=>{
-    const btn=document.createElement('button');
-    btn.className='ex-pill'+(name===selectedEx?' active':'');
-    btn.textContent=name;
-    btn.onclick=()=>{selectedEx=name;renderStats();};
-    picker.appendChild(btn);
-  });
+  const days = (plan.days||[]);
+  if(!selectedDay) selectedDay = days[0] ? String(days[0].id) : 'A';
 
-  enableDragScroll(document.getElementById('ex-picker'));
-  renderProgressChart(selectedEx);
-  renderHistory();
+  if(dayPicker){
+    dayPicker.innerHTML='';
+    days.forEach(d=>{
+      const btn=document.createElement('button');
+      btn.className='ex-pill'+(String(d.id)===String(selectedDay)?' active':'');
+      btn.textContent=(d.day||('Tag '+d.id)).toUpperCase();
+      btn.onclick=()=>{ selectedDay=String(d.id); selectedEx=null; renderStats(); };
+      dayPicker.appendChild(btn);
+    });
+    enableDragScroll(dayPicker);
+  }
+
+  const dayObj = days.find(d=>String(d.id)===String(selectedDay)) || days[0];
+  const exList = (dayObj && dayObj.exercises) ? dayObj.exercises.map(e=>e.name) : [];
+  if(!selectedEx) selectedEx = exList[0] || null;
+
+  if(exPicker){
+    exPicker.innerHTML='';
+    exList.forEach(name=>{
+      const btn=document.createElement('button');
+      btn.className='ex-pill'+(name===selectedEx?' active':'');
+      btn.textContent=name;
+      btn.onclick=()=>{ selectedEx=name; renderStats(); };
+      exPicker.appendChild(btn);
+    });
+    enableDragScroll(exPicker);
+  }
+
+  if(!selectedEx){
+    const content=document.getElementById('progress-content');
+    if(content) content.innerHTML='<div class="no-data">Keine Übungen gefunden.</div>';
+    const list=document.getElementById('hist-list');
+    if(list) list.innerHTML='';
+    return;
+  }
+
+  renderProgressChart(selectedEx, selectedDay);
+  renderHistory(selectedDay);
 }
 
-function renderProgressChart(exName){
+
+
+function renderProgressChart(exName, dayId){
   const history=getData('wkHistory',[]);
   const content=document.getElementById('progress-content');
   const points=[];
-  history.sort((a,b)=>a.timestamp-b.timestamp).forEach(w=>{
-    const exSets=w.sets.filter(s=>s.exName===exName);
-    if(exSets.length>0){
-      const maxKg=Math.max(...exSets.map(s=>parseFloat(s.kg)||0));
-      const vol=exSets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
-      points.push({date:w.date,label:new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),maxKg,vol});
-    }
-  });
+
+  history
+    .filter(w => dayId ? String(w.day)===String(dayId) : true)
+    .sort((a,b)=>a.timestamp-b.timestamp)
+    .forEach(w=>{
+      const exSets=(w.sets||[]).filter(s=>s.exName===exName);
+      if(exSets.length>0){
+        const maxKg=Math.max(...exSets.map(s=>parseFloat(s.kg)||0));
+        const vol=exSets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
+        points.push({date:w.date,label:new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),maxKg,vol});
+      }
+    });
 
   if(points.length===0){
-    content.innerHTML=`<div class="no-data">Noch keine Daten für<br><strong>${exName}</strong><br><br>Leg los! 💪</div>`;
+    content.innerHTML=`<div class="no-data">Noch keine Daten für<br><strong>${exName}</strong><br><br>Starte das Training und tracke deine Sätze.</div>`;
     return;
   }
+
   const pr=points.reduce((a,b)=>b.maxKg>a.maxKg?b:a);
   content.innerHTML=`
     <div class="chart-card">
@@ -1446,9 +1565,14 @@ function renderProgressChart(exName){
   new Chart(document.getElementById('chart-vol'),{type:'bar',data:{labels:points.map(p=>p.label),datasets:[{data:points.map(p=>Math.round(p.vol)),backgroundColor:'rgba(200,245,58,0.35)',borderColor:'#c8f53a',borderWidth:1,borderRadius:4}]},options:opts});
 }
 
-function renderHistory(){
-  const history=getData('wkHistory',[]).sort((a,b)=>b.timestamp-a.timestamp);
+
+
+function renderHistory(dayId){
+  const history=getData('wkHistory',[])
+    .filter(w => dayId ? String(w.day)===String(dayId) : true)
+    .sort((a,b)=>b.timestamp-a.timestamp);
   const list=document.getElementById('hist-list');
+  if(!list) return;
   if(history.length===0){
     list.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Noch keine Einheiten.<br>Starte dein erstes Training!</div></div>`;
     return;
@@ -1456,16 +1580,17 @@ function renderHistory(){
   list.innerHTML=history.slice(0,20).map(w=>`
     <div class="hist-card">
       <div class="hist-card-header">
-        <div><div class="hist-day-tag">TAG ${w.day}</div><div class="hist-name">${w.dayName}</div></div>
+        <div><div class="hist-day-tag">TAG ${w.day}</div><div class="hist-name">${w.dayName || ''}</div></div>
         <div class="hist-date">${new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}<div class="hist-time">${w.duration||'?'} Min.</div></div>
       </div>
       <div class="hist-stats">
-        <div class="hist-stat"><div class="hist-stat-n">${w.sets.length}</div><div class="hist-stat-l">Sätze</div></div>
-        <div class="hist-stat"><div class="hist-stat-n">${Math.round(w.totalVolume)}</div><div class="hist-stat-l">kg Vol.</div></div>
-        <div class="hist-stat"><div class="hist-stat-n">${[...new Set(w.sets.map(s=>s.exName))].length}</div><div class="hist-stat-l">Übungen</div></div>
+        <div class="hist-stat"><div class="hist-stat-n">${(w.sets||[]).length}</div><div class="hist-stat-l">Sätze</div></div>
+        <div class="hist-stat"><div class="hist-stat-n">${Math.round(w.totalVolume||0)}</div><div class="hist-stat-l">kg Vol.</div></div>
+        <div class="hist-stat"><div class="hist-stat-n">${[...new Set((w.sets||[]).map(s=>s.exName))].length}</div><div class="hist-stat-l">Übungen</div></div>
       </div>
     </div>`).join('');
 }
+
 
 // ============================================================
 // PROBETRAINING
@@ -1728,9 +1853,10 @@ function saveProbeWeights(){
   const weights = lastProbeWeights || getData('probeWeights', null);
   if(!weights){ alert('Keine Gewichte zum Speichern gefunden.'); return; }
   setData('probeWeights',weights);
-  alert('Gewichte gespeichert! Sie werden als Platzhalter in deinem Training angezeigt.');
+  alert('Gewichte gespeichert! Sie werden im Training vorausgefüllt.');
   showView('training');
 }
+
 
 // ============================================================
 // PLAN BUILDER
@@ -1747,8 +1873,6 @@ function initPlan(){
   });
 
   const saved = getData('customPlan', null);
-
-  // Wenn Plan vorhanden: zeige Plan + Historie
   if(saved){
     document.getElementById('wiz-0').style.display='none';
     document.getElementById('wiz-1').style.display='none';
@@ -1760,7 +1884,6 @@ function initPlan(){
     return;
   }
 
-  // Sonst: Builder
   showPlanBuilder();
   renderSavedPlanPanel();
 }
