@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Yannick's Trainingsplan 💪</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -54,7 +55,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .btn-outline:active,.btn-outline.active{background:var(--accent);color:#0d0d0d;border-color:var(--accent);font-weight:600}
 
 /* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,13,13,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+body[data-view="intro"] #bottom-nav{display:none}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,13,13,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index: 300;padding-bottom:env(safe-area-inset-bottom)}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;background:none;border:none;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:9px;cursor:pointer;transition:color 0.2s;letter-spacing:0.3px;text-transform:uppercase}
 .nav-btn.active{color:var(--accent)}
 .nav-icon{font-size:19px;line-height:1}
@@ -291,9 +294,41 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .plan-ex-detail{font-size:12px;color:var(--text-muted);text-align:right}
 .plan-save-btn{display:flex;margin:16px 20px 0;padding:14px;border-radius:var(--r-sm);background:var(--accent);border:none;color:#0d0d0d;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;width:calc(100% - 40px);justify-content:center}
 .plan-note{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin:12px 20px;font-size:13px;color:var(--text-mid);line-height:1.65;border-left:3px solid var(--blue)}
+
+
+.rpe-row{position:relative}
+.rpe-help{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-size:12px;line-height:20px;text-align:center;padding:0;flex:0 0 22px}
+.rpe-tip{display:none;position:absolute;left:0;right:0;bottom:34px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text-mid);line-height:1.4}
+.rpe-row.show-tip .rpe-tip{display:block}
+
+
+
+/* RPE (pro Satz) */
+.set-inputs{flex:1;display:flex;flex-direction:column;gap:6px}
+.set-fields-row{display:flex;gap:7px}
+.rpe-row{display:flex;gap:6px;align-items:center;position:relative}
+.rpe-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;min-width:32px}
+.rpe-btn{flex:1;padding:6px 0;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-size:11px;font-family:'DM Sans',sans-serif}
+.rpe-btn.sel{background:rgba(200,245,58,0.15);border-color:rgba(200,245,58,0.5);color:var(--accent);font-weight:600}
+
+
+
+/* PLAN SHEET */
+.sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);z-index:180;display:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;height:min(92vh,820px);background:var(--bg);border-top:1px solid var(--border);border-radius:18px 18px 0 0;z-index:190;transform:translateY(100%);transition:transform 0.22s ease;display:block;overflow:hidden}
+.sheet.open{transform:translateY(0)}
+.sheet .plan-header{padding:20px 20px 10px}
+.sheet .wk-back{margin-bottom:8px}
+.sheet-tabs{display:flex;gap:8px;padding:10px 0 0}
+.sheet-tab{flex:1;padding:10px 0;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:13px}
+.sheet-tab.active{background:var(--accent);border-color:var(--accent);color:#0d0d0d;font-weight:700}
+/* Make plan content scroll inside sheet */
+.sheet #view-plan{display:block}
+.sheet-body{overflow-y:auto;height:calc(100% - 86px);padding-bottom:110px}
+
 </style>
 </head>
-<body>
+<body data-view="intro">
 
 <!-- INTRO -->
 <div id="view-intro" class="view active">
@@ -325,9 +360,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="stats-row">
       <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Einheiten</div></div>
       <div class="stat-box"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Streak 🔥</div></div>
-      <div class="stat-box"><div class="stat-num" id="stat-vol">0t</div><div class="stat-lbl">Volumen</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-vol">0 kg</div><div class="stat-lbl">Bewegtes Gewicht</div></div>
     </div>
-    <div class="section-label" style="margin-top:20px">Nächste Einheit</div>
+    
+
+<div class="section-label" style="margin-top:18px">Körpergewicht (Woche)</div>
+<div style="padding:0 20px">
+  <div class="card card-pad" id="weight-card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <div style="font-size:12px;color:var(--text-muted)" id="weight-sub">Diese Woche</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent)" id="weight-val">—</div>
+      <div style="font-size:12px;color:var(--text-mid);margin-top:2px" id="weight-delta">—</div>
+      <div style="font-size:12px;color:var(--orange);margin-top:8px;display:none" id="weight-reminder">Noch kein Gewicht diese Woche eingetragen.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:140px">
+      <button class="btn-outline" id="btn-weight" onclick="openWeeklyWeightPrompt()">Eintragen</button>
+    </div>
+  </div>
+</div>
+<div class="section-label" style="margin-top:20px">Nächste Einheit</div>
 <div style="padding:0 20px">
   <div class="probe-card" id="next-workout-card" onclick="startNextWorkout()" style="margin:0">
     <div class="probe-card-header">
@@ -337,9 +388,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="probe-desc" id="next-workout-desc">Erstelle zuerst deinen Plan – danach schlägt dir die App automatisch deine nächste Einheit vor.</div>
   </div>
 </div>
-<div style="padding:12px 20px 0">
-  <button class="btn-ghost" style="width:100%" onclick="showView('training')">Zum Trainingsplan</button>
+<div style="padding:8px 20px 0;display:flex;gap:8px">
+  <button class="btn-ghost" style="flex:1" onclick="showView('training')">Zum Trainingsplan</button>
+  <button class="btn-ghost" id="btn-skip-next" style="flex:1;display:none" onclick="skipNextWorkout()">Überspringen →</button>
 </div>
+
+    <div class="section-label" style="margin-top:20px">Alle Tage</div>
+    <div class="day-cards" id="home-schedule" style="padding:0 20px"></div>
 
     </div>
   </div>
@@ -367,7 +422,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="day-cards" id="training-day-cards"></div>
 
     <div style="padding:16px 20px 0">
-      <button class="btn-ghost" style="width:100%" onclick="showView('plan')">Plan erstellen / ändern</button>
+      <button class="btn-ghost" style="width:100%" onclick="if(typeof openPlanSheet==='function'){openPlanSheet();}else{showView('training');}">Plan verwalten</button>
     </div>
   </div>
 </div>
@@ -402,7 +457,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <circle class="bg-ring" cx="85" cy="85" r="77"/>
       <circle class="fg-ring" id="timer-arc" cx="85" cy="85" r="77" stroke-dasharray="484" stroke-dashoffset="0"/>
     </svg>
-    <div class="timer-num" id="timer-num">90</div>
+    <div class="timer-num" id="timer-num">60</div>
   </div>
   <div class="timer-btns">
     <button class="timer-add" onclick="addTimer()">+30 Sek.</button>
@@ -417,10 +472,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <div class="page-title">FORT<span>SCHRITT</span></div>
     </div>
     <div class="ex-picker" id="ex-picker"></div>
-
-<div class="section-label" style="margin-top:10px">Filter</div>
-<div class="ex-picker" id="stats-day-picker"></div>
-
     <div id="progress-content"></div>
     <div class="section-label" style="margin-top:10px">Logbuch</div>
     <div id="hist-list" style="padding:0 20px;display:flex;flex-direction:column;gap:10px;padding-bottom:100px"></div>
@@ -430,7 +481,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 <!-- PROBETRAINING -->
 <div id="view-probe" class="view">
   <div class="probe-wk-header">
-    <button class="wk-back" onclick="showView('home')">← Zurück</button>
+    <button class="wk-back" onclick="showView(probeReturnView||'home')">← Zurück</button>
     <div class="wk-day-tag" style="color:var(--accent)">EINSTIEGSTEST</div>
     <div class="wk-title">Probetraining</div>
     <div class="prog-track" id="probe-prog"></div>
@@ -453,12 +504,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 </div>
 
 <!-- PLAN BUILDER -->
-<div id="view-plan" class="view">
+<div id="plan-backdrop" class="sheet-backdrop" onclick="closePlanSheet()"></div>
+<div id="plan-sheet" class="sheet">
   <div class="plan-header">
+  <button class="wk-back" id="plan-back" onclick="closePlanSheet()">✕ Schließen</button>
+
     <div class="page-title">PLAN<span>BUILDER</span></div>
     <div style="font-size:13px;color:var(--text-muted);margin-top:6px">Dein individueller Trainingsplan – von dir gestaltet, von der KI optimiert.</div>
+
+<div class="sheet-tabs">
+  <button class="sheet-tab active" id="tab-current" onclick="openPlanTab('current')">Aktuell</button>
+  <button class="sheet-tab" id="tab-history" onclick="openPlanTab('history')">Historie</button>
+  <button class="sheet-tab" id="tab-wizard" onclick="openPlanTab('wizard')">Neuer Plan</button>
+</div>
+
   </div>
+<div class="sheet-body">
+
   <div class="wizard-steps" id="wiz-steps"></div>
+
+<div id="saved-plan-panel" style="padding:0 20px 10px; display:none"></div>
+<div id="plan-history-panel" style="padding:0 20px 0; display:none"></div>
+
 
   <!-- Step 0: Goal -->
   <div class="wizard-section active" id="wiz-0">
@@ -556,7 +623,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 </div>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav" id="bottom-nav" style="display:none">
+<nav class="bottom-nav" id="bottom-nav">
   <button class="nav-btn active" id="nav-home" onclick="showView('home')">
     <span class="nav-icon">🏠</span>Home
   </button>
@@ -565,9 +632,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
   </button>
   <button class="nav-btn" id="nav-stats" onclick="showView('stats')">
     <span class="nav-icon">📊</span>Stats
-  </button>
-  <button class="nav-btn" id="nav-plan" onclick="showView('plan')">
-    <span class="nav-icon">🎯</span>Plan
   </button>
 </nav>
 
@@ -766,16 +830,22 @@ const PROBE_EXERCISES = [
 ];
 
 // ============================================================
-// STATE
+// STATE  (declared first – avoids Temporal Dead Zone errors)
 // ============================================================
+let appData = { wkHistory: [], probeWeights: null, customPlan: null, planHistory: [], weightHistory: [] };
+let db = null;
+let currentProbeView = 'intro';
+let lastProbeWeights = null;
+
 let activeDay=null, curExIdx=0, wkData={}, wkStart=null;
 let timerInterval=null, timerRem=0, timerTotal=0;
 let probeIdx=0, probeData={}, probeEffort={};
 let wizStep=0, wizGoal=null, wizDays=null, wizTime=null, wizLevel=null;
 let progressChart=null, selectedEx=null;
+let currentView='intro', probeReturnView='home';
 
 // ============================================================
-// FIREBASE SETUP
+// FIREBASE SETUP  (lazy – only runs when called, never at parse time)
 // ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyBtK413VNjWqjhMg_BO6mpZQfasrmbEtu4",
@@ -785,8 +855,17 @@ const firebaseConfig = {
   messagingSenderId: "953586065406",
   appId: "1:953586065406:web:5598086b26ccfc9b92eaaf"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  } catch(e) {
+    console.warn('Firebase init failed – running in offline mode:', e.message);
+    db = null;
+  }
+}
 
 function getDeviceId() {
   let id = localStorage.getItem('deviceId');
@@ -797,25 +876,36 @@ function getDeviceId() {
   return id;
 }
 
-// In-memory cache – synced with Firestore
-let appData = { wkHistory: [], probeWeights: null, customPlan: null };
-
 async function loadFromFirestore() {
+  if (!db) {
+    // Offline fallback: load from localStorage
+    try {
+      const local = localStorage.getItem('appData');
+      if (local) appData = { ...appData, ...JSON.parse(local) };
+    } catch(_) {}
+    return;
+  }
   try {
     const doc = await db.collection('users').doc(getDeviceId()).get();
     if (doc.exists) {
       appData = { wkHistory: [], probeWeights: null, customPlan: null, ...doc.data() };
     }
   } catch(e) {
-    console.warn('Firestore load failed, using local cache', e);
-    // Fallback: try localStorage
-    try { appData.wkHistory = JSON.parse(localStorage.getItem('wkHistory') || '[]'); } catch(_) {}
+    console.warn('Firestore load failed, using local cache:', e.message);
+    try {
+      const local = localStorage.getItem('appData');
+      if (local) appData = { ...appData, ...JSON.parse(local) };
+    } catch(_) {}
   }
 }
 
 function saveToFirestore() {
+  // Always save to localStorage as backup
+  try { localStorage.setItem('appData', JSON.stringify(appData)); } catch(_) {}
+  // Save to Firestore if available
+  if (!db) return;
   db.collection('users').doc(getDeviceId()).set(appData)
-    .catch(e => console.warn('Firestore save failed', e));
+    .catch(e => console.warn('Firestore save failed:', e.message));
 }
 
 function getData(k, fb) {
@@ -832,28 +922,143 @@ function today(){return new Date().toISOString().slice(0,10)}
 // ============================================================
 async function startApp(){
   document.getElementById('bottom-nav').style.display='flex';
-  // Show loading indicator
+  document.body.dataset.view='home';
   const btn = document.querySelector('#view-intro .btn-primary');
   btn.textContent = 'Laden...';
   btn.disabled = true;
+  initFirebase();
   await loadFromFirestore();
   btn.textContent = 'Los geht\'s 💪';
   btn.disabled = false;
-  showView('plan');
+  showView('home');
 }
 
-function showView(name){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  const nb=document.getElementById('nav-'+name);
-  if(nb)nb.classList.add('active');
-  if(name==='home')renderHome();
-  if(name==='stats')renderStats();
-  if(name==='probe')initProbe();
-  if(name==='plan')initPlan();
- if(name==='training')renderTraining();
+function getMondayKey(dateObj){
+  const d = new Date(dateObj);
+  d.setHours(0,0,0,0);
+  const day = d.getDay();
+  const diff = (day===0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0,10);
 }
+
+function getWeekLabel(mondayKey){
+  const d=new Date(mondayKey);
+  const end=new Date(d); end.setDate(end.getDate()+6);
+  const ds=d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+  const es=end.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+  return ds + '–' + es;
+}
+
+function getWeightHistory(){
+  return getData('weightHistory', []);
+}
+
+function upsertWeeklyWeight(kg){
+  const hist=getWeightHistory().slice();
+  const weekKey=getMondayKey(new Date());
+  const idx=hist.findIndex(e=>e.week===weekKey);
+  const entry={week:weekKey,kg:kg,timestamp:Date.now()};
+  if(idx>=0) hist[idx]=entry; else hist.unshift(entry);
+
+  const dedup=[]; const seen=new Set();
+  for(const e of hist){
+    if(!e || !e.week) continue;
+    if(seen.has(e.week)) continue;
+    seen.add(e.week);
+    dedup.push(e);
+    if(dedup.length>=52) break;
+  }
+  setData('weightHistory', dedup);
+}
+
+function openWeeklyWeightPrompt(){
+  const weekKey=getMondayKey(new Date());
+  const hist=getWeightHistory();
+  const existing=hist.find(e=>e.week===weekKey);
+  const defVal = existing ? String(existing.kg) : '';
+  const inp = prompt('Körpergewicht (diese Woche) in kg', defVal);
+  if(inp===null) return;
+  const val = parseFloat(String(inp).replace(',', '.'));
+  if(!isFinite(val) || val<=0){
+    alert('Bitte eine gültige Zahl eingeben (z. B. 84,2).');
+    return;
+  }
+  upsertWeeklyWeight(Math.round(val*10)/10);
+  renderHome();
+}
+
+function renderWeeklyWeightCard(){
+  const valEl=document.getElementById('weight-val');
+  const deltaEl=document.getElementById('weight-delta');
+  const subEl=document.getElementById('weight-sub');
+  const remEl=document.getElementById('weight-reminder');
+  const btnEl=document.getElementById('btn-weight');
+  if(!valEl || !deltaEl || !subEl || !remEl || !btnEl) return;
+
+  const hist=getWeightHistory().slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  const weekKey=getMondayKey(new Date());
+  const thisW=hist.find(e=>e.week===weekKey);
+  const prevKey = (()=>{ const d=new Date(weekKey); d.setDate(d.getDate()-7); return d.toISOString().slice(0,10); })();
+  const prevW=hist.find(e=>e.week===prevKey);
+
+  subEl.textContent = 'Woche ' + getWeekLabel(weekKey);
+
+  if(thisW){
+    valEl.textContent = thisW.kg.toLocaleString('de-DE') + ' kg';
+    btnEl.textContent = 'Ändern';
+    remEl.style.display='none';
+    if(prevW){
+      const diff = Math.round((thisW.kg - prevW.kg)*10)/10;
+      const sign = diff>0 ? '+' : '';
+      deltaEl.textContent = sign + diff.toLocaleString('de-DE') + ' kg vs. Vorwoche';
+    }else{
+      deltaEl.textContent = '—';
+    }
+  }else{
+    valEl.textContent = '—';
+    btnEl.textContent = 'Eintragen';
+    deltaEl.textContent = '—';
+    remEl.style.display='block';
+  }
+}
+
+
+
+
+function showView(name){
+  // Footer immer sichtbar außerhalb des Intros
+  const bn=document.getElementById('bottom-nav');
+  if(bn) bn.style.display='flex';
+  document.body.dataset.view = name;
+
+  const prev = (typeof currentView!=='undefined' && currentView) ? currentView : 'home';
+
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const view=document.getElementById('view-'+name);
+  if(!view){
+    console.error('View not found:', name);
+    return;
+  }
+  view.classList.add('active');
+
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  let navName=name;
+  if(name==='workout') navName='training';
+  const nb=document.getElementById('nav-'+navName);
+  if(nb) nb.classList.add('active');
+
+  // Herkunft merken für Probe-Rücksprung
+  if(name==='probe') probeReturnView = prev;
+  currentView = name;
+
+  if(name==='home') renderHome();
+  if(name==='stats') renderStats();
+  if(name==='probe') initProbe();
+  if(name==='training') renderTraining();
+}
+
+
 
 // ============================================================
 // PLAN / TRAINING HELPERS
@@ -871,14 +1076,17 @@ function normalizeDefaultPlan(){
   };
 }
 
+
 function normalizeCustomPlan(p){
   if(!p || !p.days || !Array.isArray(p.days) || p.days.length===0) return null;
   return {
     planName: p.planName || 'Dein Plan',
     note: p.note || '',
     days: p.days.map((d,i)=>{
-      const mm = (d.day||'').match(/([A-Z])/);
-      const id = d.id || (mm?mm[1]:String(i+1));
+      // ID stabil halten: aus "Tag A" -> "A" (ohne Wortgrenzen, robust gegen Encoding)
+      const mm = String(d.day || '').match(/(?:^|\s)Tag\s*([A-Z])(?:\s|$)/i);
+      const derived = mm ? String(mm[1]).toUpperCase() : null;
+      const id = String(d.id || derived || String(i+1));
       return {
         id,
         day: d.day || ('Tag ' + id),
@@ -888,6 +1096,7 @@ function normalizeCustomPlan(p){
     })
   };
 }
+
 
 function getActivePlan(){
   const cp = getData('customPlan', null);
@@ -940,21 +1149,29 @@ function getPlanDayOrder(){
   const plan=getActivePlan();
   return (plan.days||[]).map(d=>String(d.id));
 }
+
 function getNextDayIdInCycle(currentId){
   const order=getPlanDayOrder();
   if(order.length===0) return null;
-  const cur=String(currentId||order[0]);
+  const cur=String(currentId || order[0]);
   const idx=order.indexOf(cur);
-  return idx===-1 ? order[0] : order[(idx+1)%order.length];
+  if(idx===-1) return order[0];
+  return order[(idx+1)%order.length];
 }
+
+
 function recalculateNextDayId(){
   const order=getPlanDayOrder();
   if(order.length===0) return;
-  const h=getData('wkHistory',[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-  const last=h[0];
+  const history=getData('wkHistory',[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  const last=history[0];
   if(!last){ setData('nextDayId', order[0]); return; }
-  setData('nextDayId', getNextDayIdInCycle(last.day));
+  let next=getNextDayIdInCycle(last.day);
+  if(String(next)===String(last.day) && order.length>1) next=getNextDayIdInCycle(next);
+  setData('nextDayId', next);
 }
+
+
 function getNextWorkoutSuggestion(){
   const plan=getActivePlan();
   const days=(plan.days||[]);
@@ -966,18 +1183,32 @@ function getNextWorkoutSuggestion(){
     nextId=getData('nextDayId', String(days[0].id));
   }
 
+  if(!days.find(d=>String(d.id)===String(nextId))){
+    recalculateNextDayId();
+    nextId=getData('nextDayId', String(days[0].id));
+  }
+
   const dayObj=days.find(d=>String(d.id)===String(nextId)) || days[0];
   const last=getLastDateForDay(dayObj.id);
   return {type:'workout', day: dayObj, last};
 }
+
+
 function skipNextWorkout(){
   const plan=getActivePlan();
   const days=(plan.days||[]);
-  if(days.length===0){ showView('plan'); return; }
-  let nextId=getData('nextDayId', String(days[0].id));
+  if(days.length===0){ showView('training'); return; }
+
+  let nextId=getData('nextDayId', null);
+  if(!nextId){
+    recalculateNextDayId();
+    nextId=getData('nextDayId', String(days[0].id));
+  }
+
   setData('nextDayId', getNextDayIdInCycle(nextId));
   renderHome();
 }
+
 
 function getProbeWeightFor(exName){
   const pw = getData('probeWeights', null);
@@ -998,10 +1229,7 @@ function getLastDateForDay(dayId){
 
 function startNextWorkout(){
   const sug = getNextWorkoutSuggestion();
-  if(sug.type==='no-plan'){ showView('plan'); return; }
-  startWorkout(sug.day.id);
-}
-
+  if(sug.type==='no-plan'){ if(typeof openPlanSheet==='function'){ openPlanSheet('wizard'); } else { showView('training'); } return; }
   startWorkout(sug.day.id);
 }
 
@@ -1016,7 +1244,7 @@ function renderTraining(){
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.5px">${plan.planName}</div>
       ${plan.note ? `<div style=\"font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5\">${plan.note}</div>` : ''}
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-        <button class="btn-outline" onclick="showView('plan')">Plan ${hasCustom ? 'ändern' : 'erstellen'}</button>
+        <button class="btn-outline" onclick="openPlanSheet()">Plan ${hasCustom ? 'ändern' : 'erstellen'}</button>
         <button class="btn-outline ${hasProbe ? 'active' : ''}" onclick="showView('probe')">Einstiegstest ${hasProbe ? '✓' : ''}</button>
       </div>
     </div>
@@ -1112,7 +1340,7 @@ function renderHome(){
       if(sug.type==='no-plan'){
         tTitle.textContent='Plan erstellen';
         tDesc.textContent='Starte mit deinem Ziel – danach schlägt dir die App deine nächste Einheit vor.';
-        card.onclick=()=>showView('plan');
+        card.onclick=()=>{ if(typeof openPlanSheet==='function'){ openPlanSheet('wizard'); } else { showView('training'); } };
         if(sb) sb.style.display='none';
       }else{
         tTitle.textContent = sug.day.day.toUpperCase()+': '+(sug.day.focus||'Training');
@@ -1153,12 +1381,45 @@ function renderHome(){
         schedule.appendChild(dc);
       });
     }
+    renderWeeklyWeightCard();
   }catch(e){
     console.error('renderHome failed', e);
   }
 }
 
 
+
+
+function toggleRpeHelp(btn){
+  const row = btn.closest('.rpe-row');
+  if(!row) return;
+  const isOpen = row.classList.contains('show-tip');
+  document.querySelectorAll('.rpe-row.show-tip').forEach(r=>r.classList.remove('show-tip'));
+  if(!isOpen) row.classList.add('show-tip');
+}
+
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.rpe-row')){
+    document.querySelectorAll('.rpe-row.show-tip').forEach(r=>r.classList.remove('show-tip'));
+  }
+});
+
+
+function setRpe(exIdx,setIdx,val){
+  const row=document.getElementById(`rpe-${exIdx}-${setIdx}`);
+  if(!row) return;
+  row.dataset.rpe=String(val);
+  row.querySelectorAll('.rpe-btn').forEach(b=>b.classList.remove('sel'));
+  const btn=row.querySelector(`[data-rpe="${val}"]`);
+  if(btn) btn.classList.add('sel');
+}
+
+function getRpe(exIdx,setIdx){
+  const row=document.getElementById(`rpe-${exIdx}-${setIdx}`);
+  if(!row) return null;
+  const v=row.dataset.rpe;
+  return v ? parseInt(v,10) : null;
+}
 // ============================================================
 // WORKOUT
 // ============================================================
@@ -1195,13 +1456,25 @@ function startWorkout(day){
       setsHtml += `<div class="set-row" id="set-${idx}-${s}">
         <div class="set-num">${s+1}</div>
         <div class="set-inputs">
-          <div class="set-fw">
+          <div class="set-fields-row">
+            <div class="set-fw">
             <input class="set-field" type="number" inputmode="decimal" value="${kgVal}" placeholder="${kgVal||''}" id="kg-${idx}-${s}" min="0" step="0.5">
             <div class="set-fl">KG</div>
           </div>
-          <div class="set-fw">
+            <div class="set-fw">
             <input class="set-field" type="number" inputmode="numeric" value="${repVal}" placeholder="${ex.reps}" id="reps-${idx}-${s}" min="0">
             <div class="set-fl">WDH.</div>
+          </div>
+          </div>
+          <div class="rpe-row" id="rpe-${idx}-${s}" data-rpe="">
+            <div class="rpe-label">RPE</div>
+            <button class="rpe-help" onclick="event.stopPropagation();toggleRpeHelp(this)">?</button>
+            <div class="rpe-tip"><strong>RPE</strong>: wie hart war der Satz? 7≈3 Wdh. übrig · 8≈2 · 9≈1 · 10≈0 (Limit). Ziel meist: 7–8.</div>
+            <button class="rpe-btn" data-rpe="6" onclick="event.stopPropagation();setRpe(${idx},${s},6)">6</button>
+            <button class="rpe-btn" data-rpe="7" onclick="event.stopPropagation();setRpe(${idx},${s},7)">7</button>
+            <button class="rpe-btn" data-rpe="8" onclick="event.stopPropagation();setRpe(${idx},${s},8)">8</button>
+            <button class="rpe-btn" data-rpe="9" onclick="event.stopPropagation();setRpe(${idx},${s},9)">9</button>
+            <button class="rpe-btn" data-rpe="10" onclick="event.stopPropagation();setRpe(${idx},${s},10)">10</button>
           </div>
         </div>
         <button class="set-check" id="check-${idx}-${s}" onclick="toggleSet(${idx},${s},${ex.rest})">✓</button>
@@ -1272,13 +1545,17 @@ function toggleSet(exIdx,setIdx,rest){
   if(!btn.classList.contains('done')){
     btn.classList.add('done');row.classList.add('completed');
     if(!wkData[exIdx])wkData[exIdx]={};
-    wkData[exIdx][setIdx]={kg:kgEl.value||kgEl.placeholder,reps:repEl.value||repEl.placeholder};
+    wkData[exIdx][setIdx]={kg:kgEl.value||kgEl.placeholder,reps:repEl.value||repEl.placeholder,rpe:getRpe(exIdx,setIdx)};
+    const rpeRow=document.getElementById(`rpe-${exIdx}-${setIdx}`);
+    if(rpeRow) rpeRow.querySelectorAll('.rpe-btn, .rpe-help').forEach(b=>b.disabled=true);
     kgEl.disabled=true;repEl.disabled=true;
     startTimer(rest);
   }else{
     btn.classList.remove('done');row.classList.remove('completed');
     kgEl.disabled=false;repEl.disabled=false;
     if(wkData[exIdx])delete wkData[exIdx][setIdx];
+    const rpeRow=document.getElementById(`rpe-${exIdx}-${setIdx}`);
+    if(rpeRow) rpeRow.querySelectorAll('.rpe-btn, .rpe-help').forEach(b=>b.disabled=false);
   }
 }
 
@@ -1328,13 +1605,16 @@ function completeWorkout(){
   plan.exercises.forEach((ex,exIdx)=>{
     for(let s=0;s<ex.sets;s++){
       const d=wkData[exIdx]&&wkData[exIdx][s];
-      if(d)sets.push({exIdx,setIdx:s,exName:ex.name,kg:d.kg,reps:d.reps});
+      if(d)sets.push({exIdx,setIdx:s,exName:ex.name,kg:d.kg,reps:d.reps,rpe:d.rpe||null});
     }
   });
   const duration=Math.round((Date.now()-wkStart)/60000);
   const vol=sets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
   const entry={id:Date.now(),day:activeDay,dayName:plan.focus,date:today(),timestamp:Date.now(),duration,sets,totalVolume:vol};
   const h=getData('wkHistory',[]);h.push(entry);setData('wkHistory',h);
+
+  // Advance rotation to next day
+  setData('nextDayId', getNextDayIdInCycle(activeDay));
 
   document.getElementById('ex-scroll').style.display='none';
   document.getElementById('ex-nav').style.display='none';
@@ -1373,14 +1653,33 @@ function updateTimerUI(){
 function skipTimer(){clearInterval(timerInterval);document.getElementById('timer-overlay').classList.remove('show');}
 function addTimer(){timerRem+=30;timerTotal=Math.max(timerTotal,timerRem);updateTimerUI();}
 
+
+
+function deleteHistoryEntry(entryId){
+  const ok = confirm('Diese Einheit wirklich löschen?');
+  if(!ok) return;
+  const h = getData('wkHistory',[]).slice();
+  const i = h.findIndex(x=>String(x.id)===String(entryId));
+  if(i===-1){ alert('Einheit nicht gefunden.'); return; }
+  h.splice(i,1);
+  setData('wkHistory', h);
+  if(typeof recalculateNextDayId==='function') recalculateNextDayId();
+  renderHome();
+  renderStats();
+}
 // ============================================================
 // STATS
 // ============================================================
 function renderStats(){
-  const allEx=[...new Set(Object.values(PLAN).flatMap(p=>p.exercises.map(e=>e.name)))];
-  if(!selectedEx)selectedEx=allEx[0];
+  // Use exercises from active plan + any exercises in history (covers custom plans)
+  const activePlan = getActivePlan();
+  const planExNames = (activePlan.days||[]).flatMap(d=>(d.exercises||[]).map(e=>e.name));
+  const historyExNames = getData('wkHistory',[]).flatMap(w=>(w.sets||[]).map(s=>s.exName));
+  const allEx = [...new Set([...planExNames, ...historyExNames])].filter(Boolean);
+  if(!selectedEx || !allEx.includes(selectedEx)) selectedEx = allEx[0];
 
   const picker=document.getElementById('ex-picker');
+  if(picker) enableDragScroll(picker);
   picker.innerHTML='';
   allEx.forEach(name=>{
     const btn=document.createElement('button');
@@ -1419,7 +1718,7 @@ function renderProgressChart(exName){
       <div class="chart-wrap"><canvas id="chart-kg"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">Volumen</div><div class="chart-sub">Sätze × Wdh. × kg</div>
+      <div class="chart-title">Bewegtes Gewicht</div><div class="chart-sub">Sätze × Wdh. × kg</div>
       <div class="chart-wrap"><canvas id="chart-vol"></canvas></div>
     </div>`;
 
@@ -1523,7 +1822,7 @@ function setEffort(idx,level){
   });
 }
 
-let currentProbeView='intro'; // 'intro' or exercise index
+// currentProbeView declared at top of script
 
 function probePrev(){
   if(currentProbeView==='intro')return;
@@ -1609,7 +1908,7 @@ async function startAIAnalysis(){
 // ------------------------------------------------------------
 // Lokale „KI“-Logik: Gewichte & Tipps aus Probetraining ableiten
 // ------------------------------------------------------------
-let lastProbeWeights = null;
+// lastProbeWeights declared at top of script
 
 function roundToStep(val, step){
   if(!isFinite(val)) return 0;
@@ -1703,7 +2002,7 @@ function renderAIResult(data){
     </div>
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:10px">Tipps für dich</div>
     ${tipsHtml}
-    <button class="plan-save-btn" style="margin:20px 0 0" onclick="saveProbeWeights(${JSON.stringify(data.weights).replace(/"/g,'&quot;')})">Als Plan speichern ✓</button>
+    <button class="plan-save-btn" style="margin:20px 0 0" onclick="saveProbeWeights()">Als Plan speichern ✓</button>
   `;
 }
 
@@ -1716,12 +2015,75 @@ function saveProbeWeights(){
 }
 
 
+
+
+
+
+function openPlanSheet(tab){
+  const bd=document.getElementById('plan-backdrop');
+  const sh=document.getElementById('plan-sheet');
+  if(bd) bd.style.display='block';
+  if(sh) sh.classList.add('open');
+
+  // Defaults: wenn kein Plan vorhanden ist, direkt Wizard
+  const hasPlan = !!getData('customPlan', null);
+  const startTab = tab || (hasPlan ? 'current' : 'wizard');
+
+  initPlan();
+  openPlanTab(startTab);
+}
+
+function closePlanSheet(){
+  const bd=document.getElementById('plan-backdrop');
+  const sh=document.getElementById('plan-sheet');
+  if(sh) sh.classList.remove('open');
+  if(bd) bd.style.display='none';
+}
+
+function openPlanTab(tab){
+  ['current','history','wizard'].forEach(t=>{
+    const b=document.getElementById('tab-'+t);
+    if(b) b.classList.toggle('active', t===tab);
+  });
+
+  // Panels
+  const cur=document.getElementById('saved-plan-panel');
+  const hist=document.getElementById('plan-history-panel');
+  const steps=document.getElementById('wiz-steps');
+  const result=document.getElementById('plan-result');
+  const wiz0=document.getElementById('wiz-0');
+  const wiz1=document.getElementById('wiz-1');
+  const wiz2=document.getElementById('wiz-2');
+  const wiz3=document.getElementById('wiz-3');
+
+  const showWizard = (tab==='wizard');
+  if(cur) cur.style.display = (tab==='current') ? 'block' : 'none';
+  if(hist) hist.style.display = (tab==='history') ? 'block' : 'none';
+
+  if(steps) steps.style.display = showWizard ? 'flex' : 'none';
+  if(result) result.style.display = showWizard ? '' : 'none';
+  [wiz0,wiz1,wiz2,wiz3].forEach(el=>{ if(el) el.style.display = showWizard ? '' : 'none'; });
+
+  // Wizard initialisieren, wenn nötig
+  if(showWizard) showPlanBuilder();
+}
+
+// Sheet per Drag schließen (optional – minimal)
+let _sheetDragStartY=null;
+const _sheet = document.getElementById('plan-sheet');
+if(_sheet){
+  _sheet.addEventListener('touchstart',(e)=>{ if(!e.touches||!e.touches[0]) return; _sheetDragStartY=e.touches[0].clientY; },{passive:true});
+  _sheet.addEventListener('touchend',(e)=>{ if(_sheetDragStartY==null) return; const endY=(e.changedTouches&&e.changedTouches[0])?e.changedTouches[0].clientY:_sheetDragStartY; if(endY-_sheetDragStartY>120) closePlanSheet(); _sheetDragStartY=null; });
+}
 // ============================================================
-// PLAN BUILDER
+// PLAN VIEW (Saved plan + history)
 // ============================================================
-function initPlan(){
-  // Check if plan already generated
-  const savedPlan=getData('customPlan',null);
+function showPlanBuilder(){
+  const sp=document.getElementById('saved-plan-panel');
+  const hp=document.getElementById('plan-history-panel');
+  if(sp) sp.style.display='none';
+  if(hp) hp.style.display='none';
+
   document.getElementById('wiz-0').style.display='';
   document.getElementById('wiz-1').style.display='none';
   document.getElementById('wiz-2').style.display='none';
@@ -1729,28 +2091,118 @@ function initPlan(){
   document.getElementById('plan-result').classList.remove('show');
   document.getElementById('plan-result').style.display='none';
 
-  // Reset
   wizStep=0;wizGoal=null;wizDays=null;wizTime=null;wizLevel=null;
   document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('sel'));
   document.querySelectorAll('.choice-pill').forEach(b=>b.classList.remove('sel'));
-
-  // Build step indicators
-  const stepsEl=document.getElementById('wiz-steps');
-  stepsEl.innerHTML='';
-  [0,1,2,3].forEach(i=>{
-    const s=document.createElement('div');
-    s.className='wiz-step'+(i===0?' cur':'');
-    s.id='wiz-step-'+i;stepsEl.appendChild(s);
-  });
-
-  // Show saved plan if exists
-  if(savedPlan){
-    const cont=document.getElementById('plan-content');
-    if(cont&&cont.innerHTML){
-      // Already rendered, skip
-    }
-  }
+  updateWizSteps();
 }
+
+function applyPlanFromHistory(id){
+  const hist=getData('planHistory',[]);
+  const plan=hist.find(p=>String(p.id)===String(id));
+  if(!plan){ alert('Plan nicht gefunden.'); return; }
+  setData('customPlan', plan);
+  alert('Plan aktiviert ✓');
+  if(typeof recalculateNextDayId==='function') recalculateNextDayId();
+  showView('training');
+}
+
+function renderSavedPlanPanel(){
+  const saved=getData('customPlan', null);
+  const panel=document.getElementById('saved-plan-panel');
+  const histPanel=document.getElementById('plan-history-panel');
+  if(!panel || !histPanel) return;
+
+  const hist=getData('planHistory', []);
+
+  if(!saved){
+    panel.style.display='none';
+    histPanel.style.display='none';
+    return;
+  }
+
+  panel.style.display='block';
+  panel.innerHTML = `
+    <div class="card card-pad">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.5px">Aktueller Plan</div>
+      <div style="margin-top:8px;font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent)">${saved.planName || 'Dein Plan'}</div>
+      ${saved.note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5">${saved.note}</div>` : ''}
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn-outline" onclick="showView('training')">Zum Training</button>
+        <button class="btn-outline" onclick="showPlanBuilder()">Neuen Plan erstellen</button>
+      </div>
+    </div>
+  `;
+
+  if(!hist || hist.length===0){
+    histPanel.style.display='none';
+    return;
+  }
+
+  histPanel.style.display='block';
+  const items = hist.slice(0,10).map(p=>{
+    const d = p.createdAt ? new Date(p.createdAt) : (p.id ? new Date(Number(p.id)) : null);
+    const ds = d ? d.toLocaleDateString('de-DE') : '';
+    const days = (p.days||[]).length;
+    const exCount = (p.days||[]).reduce((a,d)=>a+(d.exercises||[]).length,0);
+    return `
+      <div class="hist-card" style="margin-bottom:10px">
+        <div class="hist-card-header">
+          <div>
+            <div class="hist-day-tag">PLAN</div>
+            <div class="hist-name">${p.planName || 'Plan'}</div>
+          </div>
+          <div class="hist-date">${ds}</div>
+        </div>
+        <div class="hist-stats">
+          <div class="hist-stat"><div class="hist-stat-n">${days}</div><div class="hist-stat-l">Tage</div></div>
+          <div class="hist-stat"><div class="hist-stat-n">${exCount}</div><div class="hist-stat-l">Übungen</div></div>
+          <div class="hist-stat"><div class="hist-stat-n">▶</div><div class="hist-stat-l">Laden</div></div>
+        </div>
+        <div style="padding:10px 16px">
+          <button class="btn-ghost" style="width:100%" onclick="applyPlanFromHistory('${p.id}')">Diesen Plan aktivieren</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  histPanel.innerHTML = `
+    <div class="section-label" style="padding:0;margin:18px 0 10px">Plan-Historie</div>
+    ${items}
+  `;
+}
+
+// ============================================================
+// PLAN BUILDER
+// ============================================================
+
+function initPlan(){
+  const stepsEl=document.getElementById('wiz-steps');
+  if(stepsEl){
+    stepsEl.innerHTML='';
+    [0,1,2,3].forEach(i=>{
+      const s=document.createElement('div');
+      s.className='wiz-step'+(i===0?' cur':'');
+      s.id='wiz-step-'+i;stepsEl.appendChild(s);
+    });
+  }
+
+  const saved=getData('customPlan', null);
+  if(saved){
+    document.getElementById('wiz-0').style.display='none';
+    document.getElementById('wiz-1').style.display='none';
+    document.getElementById('wiz-2').style.display='none';
+    document.getElementById('wiz-3').style.display='none';
+    document.getElementById('plan-result').classList.remove('show');
+    document.getElementById('plan-result').style.display='none';
+    renderSavedPlanPanel();
+    return;
+  }
+
+  showPlanBuilder();
+  renderSavedPlanPanel();
+}
+
 
 function updateWizSteps(){
   [0,1,2,3].forEach(i=>{
@@ -1929,6 +2381,11 @@ function renderPlanResult(plan){
   document.getElementById('plan-loading').style.display='none';
   const content=document.getElementById('plan-content');
   content.style.display='block';
+  plan.id = plan.id || Date.now();
+  plan.createdAt = plan.createdAt || Date.now();
+  const hist = getData('planHistory', []);
+  hist.unshift(plan);
+  setData('planHistory', hist.slice(0,20));
   setData('customPlan',plan);
 
   const daysHtml=plan.days.map(day=>`
@@ -1963,4 +2420,17 @@ function renderPlanResult(plan){
 </body>
 </html>
 
-<script>window.startApp = startApp;</script>
+<script>window.startApp=startApp;window.openWeeklyWeightPrompt=openWeeklyWeightPrompt;window.toggleRpeHelp=toggleRpeHelp;
+// Global exports for inline onclick handlers
+window.startApp = startApp;
+window.showView = showView;
+window.skipNextWorkout = skipNextWorkout;
+window.startNextWorkout = startNextWorkout;
+window.openPlanSheet = openPlanSheet;
+window.closePlanSheet = closePlanSheet;
+window.openPlanTab = openPlanTab;
+window.openWeeklyWeightPrompt = openWeeklyWeightPrompt;
+window.setRpe = setRpe;
+window.toggleRpeHelp = toggleRpeHelp;
+
+</script>
