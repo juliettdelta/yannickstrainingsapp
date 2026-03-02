@@ -921,16 +921,60 @@ function today(){return new Date().toISOString().slice(0,10)}
 // NAVIGATION
 // ============================================================
 async function startApp(){
-  document.getElementById('bottom-nav').style.display='flex';
-  document.body.dataset.view='home';
+  const bn = document.getElementById('bottom-nav');
+  if(bn) bn.style.display='flex';
+
   const btn = document.querySelector('#view-intro .btn-primary');
-  btn.textContent = 'Laden...';
-  btn.disabled = true;
-  initFirebase();
-  await loadFromFirestore();
-  btn.textContent = 'Los geht\'s 💪';
-  btn.disabled = false;
+  if(btn){
+    btn.textContent = 'Laden...';
+    btn.disabled = true;
+  }
+
+  // Sofort in die App – Daten laden im Hintergrund
   showView('home');
+
+  const isFile = (location && location.protocol === 'file:');
+  if(isFile){
+    // Lokal (file://): Firebase/Firestore kann zicken – wir nutzen nur localStorage.
+    try{
+      const local = localStorage.getItem('appData');
+      if(local) appData = { ...appData, ...JSON.parse(local) };
+    }catch(_){ }
+
+    if(btn){
+      btn.textContent = "Los geht's 💪";
+      btn.disabled = false;
+    }
+    renderHome();
+    renderTraining();
+    return;
+  }
+
+  // Online: Firebase optional, aber darf die UI nicht blockieren
+  try{
+    initFirebase();
+  }catch(_){ }
+
+  const withTimeout = (p, ms) => Promise.race([
+    p,
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))
+  ]);
+
+  try{
+    await withTimeout(loadFromFirestore(), 2500);
+  }catch(e){
+    // Nicht schlimm: App läuft mit Cache weiter
+    console.warn('Load skipped:', e && e.message ? e.message : e);
+  }
+
+  if(btn){
+    btn.textContent = "Los geht's 💪";
+    btn.disabled = false;
+  }
+
+  // Nachladen anwenden
+  renderHome();
+  renderTraining();
 }
 
 function getMondayKey(dateObj){
@@ -1027,10 +1071,10 @@ function renderWeeklyWeightCard(){
 
 
 function showView(name){
-  // Footer immer sichtbar außerhalb des Intros
-  const bn=document.getElementById('bottom-nav');
-  if(bn) bn.style.display='flex';
+  // Footer-Navigation: sichtbar außerhalb des Intros
   document.body.dataset.view = name;
+  const bn = document.getElementById('bottom-nav');
+  if(bn) bn.style.display = 'flex';
 
   const prev = (typeof currentView!=='undefined' && currentView) ? currentView : 'home';
 
@@ -1048,7 +1092,6 @@ function showView(name){
   const nb=document.getElementById('nav-'+navName);
   if(nb) nb.classList.add('active');
 
-  // Herkunft merken für Probe-Rücksprung
   if(name==='probe') probeReturnView = prev;
   currentView = name;
 
@@ -1083,8 +1126,8 @@ function normalizeCustomPlan(p){
     planName: p.planName || 'Dein Plan',
     note: p.note || '',
     days: p.days.map((d,i)=>{
-      // ID stabil halten: aus "Tag A" -> "A" (ohne Wortgrenzen, robust gegen Encoding)
-      const mm = String(d.day || '').match(/(?:^|\s)Tag\s*([A-Z])(?:\s|$)/i);
+      // ID stabil halten: A/B/C... aus "Tag A" ableiten (nicht aus dem ersten Großbuchstaben)
+      const mm = (d.day||'').match(/(?:^|)Tag\s*([A-Z])/i);
       const derived = mm ? String(mm[1]).toUpperCase() : null;
       const id = String(d.id || derived || String(i+1));
       return {
@@ -2416,6 +2459,9 @@ function renderPlanResult(plan){
     <div style="padding:12px 20px"><button class="btn-ghost" style="width:100%" onclick="initPlan()">Neuen Plan erstellen</button></div>
   `;
 }
+
+// Exports für Inline-Buttons
+window.startApp=startApp;window.showView=showView;
 </script>
 </body>
 </html>
