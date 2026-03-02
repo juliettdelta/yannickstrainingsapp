@@ -173,10 +173,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .timer-skip{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 24px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
 
 /* STATS VIEW */
-.ex-picker{display:flex;gap:8px;padding:0 20px 14px;overflow-x:auto;flex-wrap:nowrap}
+.ex-picker{display:flex;gap:8px;padding:0 20px 14px;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
 .ex-picker::-webkit-scrollbar{display:none}
 .ex-pill{white-space:nowrap;padding:7px 13px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;flex-shrink:0;transition:all 0.2s}
 .ex-pill.active{background:var(--accent);border-color:var(--accent);color:#0d0d0d;font-weight:600}
+.ex-picker.dragging{cursor:grabbing}
 .chart-card{margin:0 20px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
 .chart-title{font-size:13px;font-weight:600;margin-bottom:2px}
 .chart-sub{font-size:11px;color:var(--text-muted);margin-bottom:14px}
@@ -324,7 +325,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="stats-row">
       <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Einheiten</div></div>
       <div class="stat-box"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Streak 🔥</div></div>
-      <div class="stat-box"><div class="stat-num" id="stat-vol">0t</div><div class="stat-lbl">Bewegtes Gewicht</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-vol">0t</div><div class="stat-lbl">Volumen</div></div>
     </div>
     <div class="section-label" style="margin-top:20px">Nächste Einheit</div>
 <div style="padding:0 20px">
@@ -336,22 +337,41 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="probe-desc" id="next-workout-desc">Erstelle zuerst deinen Plan – danach schlägt dir die App automatisch deine nächste Einheit vor.</div>
   </div>
 </div>
-
-<div style="padding:10px 20px 0;display:flex;gap:10px">
-  <button class="btn-ghost" style="width:100%" id="btn-skip-next" onclick="skipNextWorkout()">Überspringen →</button>
-</div>
-
 <div style="padding:12px 20px 0">
   <button class="btn-ghost" style="width:100%" onclick="showView('training')">Zum Trainingsplan</button>
 </div>
 
-<div class="section-label" style="margin-top:20px">Diese Einheiten stehen an</div>
-<div class="day-cards" id="home-schedule"></div>
-
-
     </div>
   </div>
 </div>
+
+<!-- TRAINING -->
+<div id="view-training" class="view">
+  <div class="scroll-view">
+    <div class="page-header">
+      <div class="page-title">TRAINING <span>PLAN</span></div>
+    </div>
+
+    <div id="training-plan-header" style="padding:0 20px 10px"></div>
+
+    <div class="section-label" style="margin-top:6px">Einstieg</div>
+    <div class="probe-card" onclick="showView('probe')" style="margin:0 20px">
+      <div class="probe-card-header">
+        <span class="probe-icon">🔬</span>
+        <span class="probe-title">Einstiegstest</span>
+      </div>
+      <div class="probe-desc" id="probe-hint">Teste deine Gewichte – danach werden passende Arbeitsgewichte im Training vorausgefüllt.</div>
+    </div>
+
+    <div class="section-label" style="margin-top:20px">Trainingstage</div>
+    <div class="day-cards" id="training-day-cards"></div>
+
+    <div style="padding:16px 20px 0">
+      <button class="btn-ghost" style="width:100%" onclick="showView('plan')">Plan erstellen / ändern</button>
+    </div>
+  </div>
+</div>
+
 <!-- WORKOUT -->
 <div id="view-workout" class="view">
   <div class="wk-header">
@@ -370,7 +390,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="done-title">EINHEIT DONE!</div>
     <div class="done-sub" id="done-sub"></div>
     <div class="done-stats" id="done-stats"></div>
-    <button class="btn-primary" style="max-width:240px" onclick="finishWorkout()">Zum Dashboard</button>
+    <button class="btn-primary" style="max-width:240px" onclick="finishWorkout()">Zur Übersicht</button>
   </div>
 </div>
 
@@ -397,6 +417,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <div class="page-title">FORT<span>SCHRITT</span></div>
     </div>
     <div class="ex-picker" id="ex-picker"></div>
+
+<div class="section-label" style="margin-top:10px">Filter</div>
+<div class="ex-picker" id="stats-day-picker"></div>
+
     <div id="progress-content"></div>
     <div class="section-label" style="margin-top:10px">Logbuch</div>
     <div id="hist-list" style="padding:0 20px;display:flex;flex-direction:column;gap:10px;padding-bottom:100px"></div>
@@ -531,29 +555,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
   </div>
 </div>
 
-
-
-<!-- SESSION DETAIL (STATS) -->
-<div id="view-session" class="view">
-  <div class="scroll-view">
-    <div class="wk-header" style="position:sticky;top:0;z-index:2">
-      <button class="wk-back" onclick="showView('stats')">← Zurück</button>
-      <div class="wk-day-tag" id="sess-day-tag">TAG</div>
-      <div class="wk-title" id="sess-title">Einheit</div>
-    </div>
-
-    <div style="padding:14px 20px 0" id="sess-summary"></div>
-
-    <div class="section-label" style="margin-top:14px">Übungen</div>
-    <div class="ex-picker" id="sess-ex-picker"></div>
-
-    <div id="sess-progress" style="padding-bottom:100px"></div>
-
-    <div style="padding:14px 20px 100px">
-      <button class="btn-ghost" style="width:100%" onclick="deleteSessionConfirm()">Einheit löschen</button>
-    </div>
-  </div>
-</div>
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav" style="display:none">
   <button class="nav-btn active" id="nav-home" onclick="showView('home')">
@@ -895,59 +896,86 @@ function getActivePlan(){
 }
 
 
+// ============================================================
+// UI HELPERS
+// ============================================================
+function enableDragScroll(el){
+  if(!el || el._dragScrollEnabled) return;
+  el._dragScrollEnabled = true;
+  let isDown=false, startX=0, scrollLeft=0;
+  const start=(x)=>{isDown=true; el.classList.add('dragging'); startX=x; scrollLeft=el.scrollLeft;};
+  const move=(x)=>{ if(!isDown) return; el.scrollLeft = scrollLeft - (x-startX); };
+  const end=()=>{isDown=false; el.classList.remove('dragging');};
+  el.addEventListener('mousedown',(e)=>start(e.pageX));
+  el.addEventListener('mousemove',(e)=>{ if(!isDown) return; e.preventDefault(); move(e.pageX);});
+  window.addEventListener('mouseup', end);
+  el.addEventListener('touchstart',(e)=>{ if(!e.touches||!e.touches[0]) return; start(e.touches[0].pageX);},{passive:true});
+  el.addEventListener('touchmove',(e)=>{ if(!e.touches||!e.touches[0]) return; move(e.touches[0].pageX);},{passive:true});
+  el.addEventListener('touchend', end);
+}
+
+function repsDefaultFromRange(r){
+  if(!r) return '';
+  const s=String(r).replace(/\s/g,'');
+  const m=s.match(/(\d+)[–-](\d+)/);
+  if(!m) return /^\d+$/.test(s)?s:'';
+  return String(Math.round((parseInt(m[1],10)+parseInt(m[2],10))/2));
+}
+
+function adjustExerciseKg(exIdx, delta){
+  const fields = document.querySelectorAll(`[id^="kg-${exIdx}-"]`);
+  fields.forEach(f=>{
+    const v = parseFloat(f.value);
+    if(!isNaN(v)){
+      const nv = Math.max(0, v + delta);
+      f.value = (Math.round(nv*2)/2).toString();
+    }
+  });
+}
+
+// ============================================================
+// NEXT WORKOUT (Rotation + Skip)
+// ============================================================
 function getPlanDayOrder(){
-  const plan = getActivePlan();
+  const plan=getActivePlan();
   return (plan.days||[]).map(d=>String(d.id));
 }
-
 function getNextDayIdInCycle(currentId){
-  const order = getPlanDayOrder();
+  const order=getPlanDayOrder();
   if(order.length===0) return null;
-  const cur = String(currentId||order[0]);
-  const idx = order.indexOf(cur);
-  if(idx===-1) return order[0];
-  return order[(idx+1)%order.length];
+  const cur=String(currentId||order[0]);
+  const idx=order.indexOf(cur);
+  return idx===-1 ? order[0] : order[(idx+1)%order.length];
 }
-
 function recalculateNextDayId(){
-  const h = getData('wkHistory',[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-  const last = h[0];
-  const order = getPlanDayOrder();
+  const order=getPlanDayOrder();
   if(order.length===0) return;
-  if(!last){
-    setData('nextDayId', order[0]);
-    return;
-  }
+  const h=getData('wkHistory',[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  const last=h[0];
+  if(!last){ setData('nextDayId', order[0]); return; }
   setData('nextDayId', getNextDayIdInCycle(last.day));
 }
-
 function getNextWorkoutSuggestion(){
-  const plan = getActivePlan();
-  const order = (plan.days||[]);
-  if(!order || order.length===0) return { type:'no-plan' };
+  const plan=getActivePlan();
+  const days=(plan.days||[]);
+  if(days.length===0) return {type:'no-plan'};
 
-  // Rotation: nextDayId in storage, else derive from history
-  let nextId = getData('nextDayId', null);
+  let nextId=getData('nextDayId', null);
   if(!nextId){
     recalculateNextDayId();
-    nextId = getData('nextDayId', String(order[0].id));
+    nextId=getData('nextDayId', String(days[0].id));
   }
 
-  const dayObj = order.find(d=>String(d.id)===String(nextId)) || order[0];
-  const last = getLastDateForDay(dayObj.id);
-  return { type:'workout', day: dayObj, last };
+  const dayObj=days.find(d=>String(d.id)===String(nextId)) || days[0];
+  const last=getLastDateForDay(dayObj.id);
+  return {type:'workout', day: dayObj, last};
 }
-
 function skipNextWorkout(){
-  const plan = getActivePlan();
-  const order = (plan.days||[]);
-  if(!order || order.length===0){
-    showView('plan');
-    return;
-  }
-  let nextId = getData('nextDayId', String(order[0].id));
-  const newId = getNextDayIdInCycle(nextId);
-  setData('nextDayId', newId);
+  const plan=getActivePlan();
+  const days=(plan.days||[]);
+  if(days.length===0){ showView('plan'); return; }
+  let nextId=getData('nextDayId', String(days[0].id));
+  setData('nextDayId', getNextDayIdInCycle(nextId));
   renderHome();
 }
 
@@ -966,18 +994,7 @@ function getLastDateForDay(dayId){
   return items[0].date || null;
 }
 
-function getNextWorkoutSuggestion(){
-  const hasCustom = !!normalizeCustomPlan(getData('customPlan', null));
-  if(!hasCustom) return { type:'no-plan' };
-  const plan = getActivePlan();
-  const scored = plan.days.map((d, idx) => {
-    const last = getLastDateForDay(d.id);
-    const score = last ? last : '0000-00-00';
-    return { d, idx, last, score };
-  });
-  scored.sort((a,b)=> a.score.localeCompare(b.score) || a.idx - b.idx);
-  return { type:'workout', day: scored[0].d, last: scored[0].last };
-}
+// (replaced by rotation-based getNextWorkoutSuggestion)
 
 function startNextWorkout(){
   const sug = getNextWorkoutSuggestion();
@@ -1047,10 +1064,10 @@ function renderHome(){
   try{
     const history=getData('wkHistory',[]);
 
-    // KPIs
     const totalEl=document.getElementById('stat-total');
     const streakEl=document.getElementById('stat-streak');
     const volEl=document.getElementById('stat-vol');
+
     if(totalEl) totalEl.textContent=history.length;
 
     // streak
@@ -1083,57 +1100,55 @@ function renderHome(){
       const lbl=document.createElement('div');lbl.className='streak-lbl';lbl.textContent='7 Tage';row.appendChild(lbl);
     }
 
-    // Next workout tile + skip
+    // next tile
     const tTitle=document.getElementById('next-workout-title');
     const tDesc=document.getElementById('next-workout-desc');
     const card=document.getElementById('next-workout-card');
     const sb=document.getElementById('btn-skip-next');
 
-    const sug = (typeof getNextWorkoutSuggestion==='function') ? getNextWorkoutSuggestion() : {type:'no-plan'};
+    const sug=getNextWorkoutSuggestion();
 
     if(tTitle && tDesc && card){
       if(sug.type==='no-plan'){
-        tTitle.textContent = 'Plan erstellen';
-        tDesc.textContent = 'Starte mit deinem Ziel – danach schlägt dir die App deine nächste Einheit vor.';
-        card.onclick = () => showView('plan');
+        tTitle.textContent='Plan erstellen';
+        tDesc.textContent='Starte mit deinem Ziel – danach schlägt dir die App deine nächste Einheit vor.';
+        card.onclick=()=>showView('plan');
         if(sb) sb.style.display='none';
       }else{
-        tTitle.textContent = sug.day.day.toUpperCase() + ': ' + (sug.day.focus || 'Training');
-        const lastTxt = sug.last ? ('Zuletzt: ' + new Date(sug.last).toLocaleDateString('de-DE')) : 'Noch nie gemacht';
+        tTitle.textContent = sug.day.day.toUpperCase()+': '+(sug.day.focus||'Training');
+        const lastTxt = sug.last ? ('Zuletzt: '+ new Date(sug.last).toLocaleDateString('de-DE')) : 'Noch nie gemacht';
         tDesc.textContent = lastTxt + ' · Tippe zum Starten.';
-        card.onclick = () => startWorkout(sug.day.id);
+        card.onclick=()=>startWorkout(sug.day.id);
         if(sb) sb.style.display='block';
       }
     }
 
-    // Schedule list (alle Einheiten im Zyklus)
+    // schedule list
     const schedule=document.getElementById('home-schedule');
-    if(schedule && typeof getActivePlan==='function'){
-      const plan = getActivePlan();
+    if(schedule){
+      const plan=getActivePlan();
       schedule.innerHTML='';
-
       const nextId = (sug.type==='workout' && sug.day) ? String(sug.day.id) : null;
 
       (plan.days||[]).forEach(d=>{
-        const last = (typeof getLastDateForDay==='function') ? getLastDateForDay(d.id) : null;
+        const last=getLastDateForDay(d.id);
         const lastText = last ? new Date(last).toLocaleDateString('de-DE') : 'Noch nie';
-        const exNames = (d.exercises||[]).map(e=>e.name).slice(0,4);
+        const exNames=(d.exercises||[]).map(e=>e.name).slice(0,4);
         const exText = exNames.join(' · ') + ((d.exercises||[]).length>4 ? ' · +' + ((d.exercises||[]).length-4) : '');
 
         const dc=document.createElement('div');
         dc.className='day-card';
         dc.onclick=()=>startWorkout(d.id);
-        if(nextId && String(d.id)===nextId){
-          dc.style.borderColor='rgba(200,245,58,0.55)';
-        }
+        if(nextId && String(d.id)===nextId) dc.style.borderColor='rgba(200,245,58,0.55)';
+
         dc.innerHTML=`
           <div class="day-accent"></div>
           <div class="day-card-top">
             <div class="day-tag">${(d.day||'').toUpperCase()}</div>
             <div class="day-last">${lastText}</div>
           </div>
-          <div class="day-name">${d.focus || 'Training'}</div>
-          <div class="day-exlist">${exText || '—'}</div>
+          <div class="day-name">${d.focus||'Training'}</div>
+          <div class="day-exlist">${exText||'—'}</div>
         `;
         schedule.appendChild(dc);
       });
@@ -1147,10 +1162,11 @@ function renderHome(){
 // ============================================================
 // WORKOUT
 // ============================================================
+
 function startWorkout(day){
   activeDay=day;curExIdx=0;wkData={};wkStart=Date.now();
-  const planAll = getActivePlan();
-  const planDay = planAll.days.find(d=>String(d.id)===String(day)) || planAll.days[0];
+  const planAll=getActivePlan();
+  const planDay=planAll.days.find(d=>String(d.id)===String(day)) || planAll.days[0];
 
   document.getElementById('wk-day-tag').textContent=(planDay.day||('Tag '+day)).toUpperCase();
   document.getElementById('wk-title').textContent=planDay.focus || 'Training';
@@ -1167,56 +1183,70 @@ function startWorkout(day){
     block.className='ex-block'+(idx===0?' active':'');
     block.id='ex-block-'+idx;
 
-    const probeKg = getProbeWeightFor(ex.name);
+    const probeKg=getProbeWeightFor(ex.name);
 
     let setsHtml='';
     for(let s=0;s<ex.sets;s++){
-      const lastSet=lastWk?lastWk.sets.find(ls=>ls.exIdx===idx&&ls.setIdx===s):null;
-      const phKg=lastSet?lastSet.kg:(probeKg!=null?probeKg:(info.beginnerKg?info.beginnerKg.split('–')[0]:'—'));
-      const phReps=lastSet?lastSet.reps:ex.reps;
-      setsHtml+=`<div class="set-row" id="set-${idx}-${s}">
+      const lastSet=lastWk? (lastWk.sets||[]).find(ls=>ls.exIdx===idx && ls.setIdx===s) : null;
+      const baseKg = lastSet ? parseFloat(lastSet.kg) : (probeKg!=null ? parseFloat(probeKg) : (info.beginnerKg?parseFloat(String(info.beginnerKg).split('–')[0]):''));
+      const kgVal = (baseKg!=='' && !isNaN(baseKg)) ? String(baseKg) : '';
+      const repVal = lastSet ? String(lastSet.reps) : repsDefaultFromRange(ex.reps);
+
+      setsHtml += `<div class="set-row" id="set-${idx}-${s}">
         <div class="set-num">${s+1}</div>
         <div class="set-inputs">
-          <div class="set-fw"><input class="set-field" type="number" inputmode="decimal" placeholder="${phKg}" id="kg-${idx}-${s}" min="0" step="0.5"><div class="set-fl">KG</div></div>
-          <div class="set-fw"><input class="set-field" type="number" inputmode="numeric" placeholder="${phReps}" id="reps-${idx}-${s}" min="0"><div class="set-fl">WDH.</div></div>
+          <div class="set-fw">
+            <input class="set-field" type="number" inputmode="decimal" value="${kgVal}" placeholder="${kgVal||''}" id="kg-${idx}-${s}" min="0" step="0.5">
+            <div class="set-fl">KG</div>
+          </div>
+          <div class="set-fw">
+            <input class="set-field" type="number" inputmode="numeric" value="${repVal}" placeholder="${ex.reps}" id="reps-${idx}-${s}" min="0">
+            <div class="set-fl">WDH.</div>
+          </div>
         </div>
         <button class="set-check" id="check-${idx}-${s}" onclick="toggleSet(${idx},${s},${ex.rest})">✓</button>
       </div>`;
     }
 
-    const weightInfo=info.beginnerKg?`<div class="weight-rec">
-      <div class="weight-chip"><div class="weight-chip-val">${info.beginnerKg}</div><div class="weight-chip-lbl">Einsteiger kg</div></div>
-      ${info.intermediateKg?`<div class=\"weight-chip\"><div class=\"weight-chip-val\">${info.intermediateKg}</div><div class=\"weight-chip-lbl\">Fortgesch. kg</div></div>`:''}
-    </div>`:'';
-
-    const probeBadge = (probeKg!=null)
-      ? `<div class="pr-badge" style="margin:10px 0 14px">🎯 <span style="font-size:12px;color:var(--text-mid)">Platzhalter aus Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong></span></div>`
-      : '';
+    const sourceLine = probeKg!=null ? `🎯 Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong>` : '';
 
     block.innerHTML=`
       <div class="ex-meta">Übung ${idx+1} von ${(planDay.exercises||[]).length} · ${ex.sets} Sätze à ${ex.reps} Wdh.</div>
       <div class="ex-name">${ex.name}</div>
       <div class="ex-muscles">${info.muscles || ''}</div>
-      ${probeBadge}
+
+      <div class="pr-badge" style="margin:10px 0 14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px">
+          <div style="font-size:12px;color:var(--text-mid)">${sourceLine || 'Vorschlag: zuletzt / Einstiegstest / Empfehlung'}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-outline" style="padding:8px 10px" onclick="event.stopPropagation();adjustExerciseKg(${idx},-2.5)">-2,5</button>
+            <button class="btn-outline" style="padding:8px 10px" onclick="event.stopPropagation();adjustExerciseKg(${idx},2.5)">+2,5</button>
+          </div>
+        </div>
+      </div>
+
       <button class="ex-info-toggle" onclick="toggleInfo(${idx})" id="info-toggle-${idx}">
         <span>📖</span><span>Technik & Empfehlungen</span><span class="arrow">▼</span>
       </button>
       <div class="ex-info-panel" id="info-panel-${idx}">
         <div class="ex-info-section"><div class="ex-info-label">Ausführung</div><div class="ex-info-text">${info.description || ''}</div></div>
-        ${info.mistakes?`<div class=\"ex-info-section\"><div class=\"ex-info-hint\">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
-        ${info.breathing?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Atmung</div><div class=\"ex-info-text\">${info.breathing}</div></div>`:''}
-        ${info.beginnerKg?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Empfohlene Gewichte</div>${weightInfo}</div>`:''}
+        ${info.mistakes?`<div class="ex-info-section"><div class="ex-info-hint">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
+        ${info.breathing?`<div class="ex-info-section"><div class="ex-info-label">Atmung</div><div class="ex-info-text">${info.breathing}</div></div>`:''}
       </div>
+
       <div class="sets-list" style="margin-top:2px">${setsHtml}</div>
     `;
+
     scroll.appendChild(block);
   });
 
-  const prog=document.getElementById('wk-prog');prog.innerHTML='';
+  const prog=document.getElementById('wk-prog');
+  prog.innerHTML='';
   (planDay.exercises||[]).forEach((_,i)=>{
     const seg=document.createElement('div');
     seg.className='prog-seg'+(i===0?' cur':'');
-    seg.id='prog-seg-'+i;prog.appendChild(seg);
+    seg.id='prog-seg-'+i;
+    prog.appendChild(seg);
   });
 
   document.getElementById('done-screen').classList.remove('show');
@@ -1225,6 +1255,7 @@ function startWorkout(day){
   updateWkNav();
   showView('workout');
 }
+
 
 function toggleInfo(idx){
   const panel=document.getElementById('info-panel-'+idx);
@@ -1304,8 +1335,6 @@ function completeWorkout(){
   const vol=sets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
   const entry={id:Date.now(),day:activeDay,dayName:plan.focus,date:today(),timestamp:Date.now(),duration,sets,totalVolume:vol};
   const h=getData('wkHistory',[]);h.push(entry);setData('wkHistory',h);
-  // Rotation: set next day
-  setData('nextDayId', getNextDayIdInCycle(activeDay));
 
   document.getElementById('ex-scroll').style.display='none';
   document.getElementById('ex-nav').style.display='none';
@@ -1344,244 +1373,44 @@ function updateTimerUI(){
 function skipTimer(){clearInterval(timerInterval);document.getElementById('timer-overlay').classList.remove('show');}
 function addTimer(){timerRem+=30;timerTotal=Math.max(timerTotal,timerRem);updateTimerUI();}
 
-
-
-function getHistoryByDay(){
-  const plan = getActivePlan();
-  const days = (plan.days||[]);
-  const map = {};
-  days.forEach(d=>{ map[String(d.id)] = []; });
-
-  const history = getData('wkHistory',[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-  history.forEach(w=>{
-    const k = String(w.day);
-    if(!map[k]) map[k] = [];
-    map[k].push(w);
-  });
-  return { days, map };
-}
-
-function openSession(sessionId){
-  const history = getData('wkHistory',[]);
-  const sess = history.find(w=>String(w.id)===String(sessionId));
-  if(!sess){ alert('Einheit nicht gefunden.'); return; }
-  selectedSessionId = String(sessionId);
-
-  const tag=document.getElementById('sess-day-tag');
-  const title=document.getElementById('sess-title');
-  const summary=document.getElementById('sess-summary');
-  if(tag) tag.textContent=('TAG '+sess.day).toUpperCase();
-  if(title) title.textContent=sess.dayName || 'Einheit';
-
-  const vol = Math.round(sess.totalVolume||0).toLocaleString('de-DE');
-  const dur = sess.duration || '?';
-  if(summary){
-    summary.innerHTML = `
-      <div class="card card-pad">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-          <div>
-            <div style="font-size:12px;color:var(--text-muted)">${new Date(sess.date).toLocaleDateString('de-DE')}</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Dauer: <strong style="color:var(--text)">${dur} Min.</strong></div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:12px;color:var(--text-muted)">Bewegtes Gewicht</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent)">${vol} kg</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // Exercises in this session
-  const exNames = [...new Set((sess.sets||[]).map(s=>s.exName))];
-  const picker=document.getElementById('sess-ex-picker');
-  if(picker){
-    picker.innerHTML='';
-    exNames.forEach((name,i)=>{
-      const btn=document.createElement('button');
-      btn.className='ex-pill'+(i===0?' active':'');
-      btn.textContent=name;
-      btn.onclick=()=>{
-        document.querySelectorAll('#sess-ex-picker .ex-pill').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        renderProgressChart(name, selectedDay==='ALL'?null:selectedDay);
-        // Render into sess-progress instead of progress-content
-        const pc=document.getElementById('progress-content');
-        const sp=document.getElementById('sess-progress');
-        if(pc && sp){ sp.innerHTML = pc.innerHTML; pc.innerHTML=''; }
-      };
-      picker.appendChild(btn);
-    });
-    enableDragScroll(picker);
-  }
-
-  // Default: first exercise
-  if(exNames[0]){
-    // render into hidden progress-content then move html
-    renderProgressChart(exNames[0], selectedDay==='ALL'?null:selectedDay);
-    const pc=document.getElementById('progress-content');
-    const sp=document.getElementById('sess-progress');
-    if(pc && sp){ sp.innerHTML = pc.innerHTML; pc.innerHTML=''; }
-  }
-
-  showView('session');
-}
-
-function deleteSessionConfirm(){
-  if(!selectedSessionId){ alert('Keine Einheit ausgewählt.'); return; }
-  const ok = confirm('Diese Einheit wirklich löschen?');
-  if(!ok) return;
-  deleteSession(selectedSessionId);
-}
-
-function deleteSession(sessionId){
-  const h = getData('wkHistory',[]).slice();
-  const idx = h.findIndex(w=>String(w.id)===String(sessionId));
-  if(idx===-1){ alert('Einheit nicht gefunden.'); return; }
-  h.splice(idx,1);
-  setData('wkHistory', h);
-
-  // Rotation neu berechnen
-  if(typeof recalculateNextDayId==='function') recalculateNextDayId();
-
-  alert('Einheit gelöscht.');
-  selectedSessionId = null;
-  showView('stats');
-}
 // ============================================================
 // STATS
 // ============================================================
-
 function renderStats(){
-  const plan = getActivePlan();
-  const dayPicker = document.getElementById('stats-day-picker');
+  const allEx=[...new Set(Object.values(PLAN).flatMap(p=>p.exercises.map(e=>e.name)))];
+  if(!selectedEx)selectedEx=allEx[0];
 
-  // Filter: selectedDay = 'ALL' oder Tag-ID
-  const days = (plan.days||[]);
-  if(!selectedDay) selectedDay = 'ALL';
+  const picker=document.getElementById('ex-picker');
+  picker.innerHTML='';
+  allEx.forEach(name=>{
+    const btn=document.createElement('button');
+    btn.className='ex-pill'+(name===selectedEx?' active':'');
+    btn.textContent=name;
+    btn.onclick=()=>{selectedEx=name;renderStats();};
+    picker.appendChild(btn);
+  });
 
-  // Day picker (inkl. Alle Tage)
-  if(dayPicker){
-    dayPicker.innerHTML='';
-
-    const allBtn=document.createElement('button');
-    allBtn.className='ex-pill'+(selectedDay==='ALL'?' active':'');
-    allBtn.textContent='ALLE TAGE';
-    allBtn.onclick=()=>{ selectedDay='ALL'; renderStats(); };
-    dayPicker.appendChild(allBtn);
-
-    days.forEach(d=>{
-      const btn=document.createElement('button');
-      btn.className='ex-pill'+(String(d.id)===String(selectedDay)?' active':'');
-      btn.textContent=(d.day||('Tag '+d.id)).toUpperCase();
-      btn.onclick=()=>{ selectedDay=String(d.id); renderStats(); };
-      dayPicker.appendChild(btn);
-    });
-
-    enableDragScroll(dayPicker);
-  }
-
-  // Exercise picker stays available for the old UI but we now focus on sessions.
-  const exPicker = document.getElementById('ex-picker');
-  if(exPicker){
-    // Union: Plan exercises + logged exercises
-    const planExercises = [...new Set(days.flatMap(d=>(d.exercises||[]).map(e=>e.name)))];
-    const loggedExercises = [...new Set(getData('wkHistory',[]).flatMap(w=>(w.sets||[]).map(s=>s.exName)))];
-    const all = [...new Set([...planExercises, ...loggedExercises])];
-
-    if(!selectedEx) selectedEx = all[0] || null;
-
-    exPicker.innerHTML='';
-    all.forEach(name=>{
-      const btn=document.createElement('button');
-      btn.className='ex-pill'+(name===selectedEx?' active':'');
-      btn.textContent=name;
-      btn.onclick=()=>{ selectedEx=name; renderStats(); };
-      exPicker.appendChild(btn);
-    });
-    enableDragScroll(exPicker);
-  }
-
-  // Charts: show for selectedEx with filter
-  if(selectedEx){
-    renderProgressChart(selectedEx, selectedDay==='ALL'?null:selectedDay);
-  }
-
-  // Logbook grouped by day (2B)
-  const list=document.getElementById('hist-list');
-  if(!list) return;
-
-  const { days: planDays, map } = getHistoryByDay();
-
-  // Filter map if single day
-  const dayIds = selectedDay==='ALL' ? planDays.map(d=>String(d.id)) : [String(selectedDay)];
-
-  const sections = dayIds.map(dayId => {
-    const dayObj = planDays.find(d=>String(d.id)===String(dayId));
-    const header = dayObj ? ((dayObj.day||('Tag '+dayObj.id)).toUpperCase() + ' · ' + (dayObj.focus||'Training')) : ('TAG ' + dayId);
-    const items = (map[dayId]||[]);
-
-    const cards = items.map(w=>{
-      const vol = Math.round(w.totalVolume||0).toLocaleString('de-DE');
-      const uniq = [...new Set((w.sets||[]).map(s=>s.exName))].length;
-      return `
-        <div class="hist-card" style="cursor:pointer" onclick="openSession('${w.id}')">
-          <div class="hist-card-header">
-            <div>
-              <div class="hist-day-tag">TAG ${w.day}</div>
-              <div class="hist-name">${w.dayName || ''}</div>
-            </div>
-            <div class="hist-date">${new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}
-              <div class="hist-time">${w.duration || '?'} Min.</div>
-            </div>
-          </div>
-          <div class="hist-stats">
-            <div class="hist-stat"><div class="hist-stat-n">${(w.sets||[]).length}</div><div class="hist-stat-l">Sätze</div></div>
-            <div class="hist-stat"><div class="hist-stat-n">${vol}</div><div class="hist-stat-l">kg</div></div>
-            <div class="hist-stat"><div class="hist-stat-n">${uniq}</div><div class="hist-stat-l">Übungen</div></div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="section-label" style="padding:0;margin:18px 0 10px">${header}</div>
-      ${cards || '<div class="no-data">Noch keine Einheiten.</div>'}
-    `;
-  }).join('');
-
-  list.innerHTML = sections;
+  renderProgressChart(selectedEx);
+  renderHistory();
 }
 
-
-
-function renderProgressChart(exName, dayId){
+function renderProgressChart(exName){
   const history=getData('wkHistory',[]);
   const content=document.getElementById('progress-content');
-
   const points=[];
-  history
-    .filter(w => dayId ? String(w.day)===String(dayId) : true)
-    .sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
-    .forEach(w=>{
-      const exSets=(w.sets||[]).filter(s=>s.exName===exName);
-      if(exSets.length>0){
-        const maxKg=Math.max(...exSets.map(s=>parseFloat(s.kg)||0));
-        const vol=exSets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
-        points.push({
-          date:w.date,
-          label:new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),
-          maxKg,
-          vol
-        });
-      }
-    });
+  history.sort((a,b)=>a.timestamp-b.timestamp).forEach(w=>{
+    const exSets=w.sets.filter(s=>s.exName===exName);
+    if(exSets.length>0){
+      const maxKg=Math.max(...exSets.map(s=>parseFloat(s.kg)||0));
+      const vol=exSets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
+      points.push({date:w.date,label:new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),maxKg,vol});
+    }
+  });
 
   if(points.length===0){
-    content.innerHTML=`<div class="no-data">Noch keine Daten für<br><strong>${exName}</strong><br><br>Starte das Training und tracke deine Sätze.</div>`;
+    content.innerHTML=`<div class="no-data">Noch keine Daten für<br><strong>${exName}</strong><br><br>Leg los! 💪</div>`;
     return;
   }
-
   const pr=points.reduce((a,b)=>b.maxKg>a.maxKg?b:a);
   content.innerHTML=`
     <div class="chart-card">
@@ -1599,7 +1428,6 @@ function renderProgressChart(exName, dayId){
   new Chart(document.getElementById('chart-kg'),{type:'line',data:{labels:points.map(p=>p.label),datasets:[{data:points.map(p=>p.maxKg),borderColor:'#c8f53a',backgroundColor:'rgba(200,245,58,0.07)',tension:0.3,fill:true,pointBackgroundColor:'#c8f53a',pointRadius:4}]},options:opts});
   new Chart(document.getElementById('chart-vol'),{type:'bar',data:{labels:points.map(p=>p.label),datasets:[{data:points.map(p=>Math.round(p.vol)),backgroundColor:'rgba(200,245,58,0.35)',borderColor:'#c8f53a',borderWidth:1,borderRadius:4}]},options:opts});
 }
-
 
 function renderHistory(){
   const history=getData('wkHistory',[]).sort((a,b)=>b.timestamp-a.timestamp);
@@ -1879,11 +1707,14 @@ function renderAIResult(data){
   `;
 }
 
-function saveProbeWeights(weights){
-  setData('probeWeights',weights);
-  alert('Gewichte gespeichert! Sie werden als Platzhalter in deinem Training angezeigt.');
-  showView('home');
+function saveProbeWeights(){
+  const weights = lastProbeWeights || getData('probeWeights', null);
+  if(!weights){ alert('Keine Gewichte zum Speichern gefunden.'); return; }
+  setData('probeWeights', weights);
+  alert('Gewichte gespeichert! Sie werden im Training vorausgefüllt.');
+  showView('training');
 }
+
 
 // ============================================================
 // PLAN BUILDER
@@ -2131,3 +1962,5 @@ function renderPlanResult(plan){
 </script>
 </body>
 </html>
+
+<script>window.startApp = startApp;</script>
