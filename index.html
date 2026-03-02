@@ -326,23 +326,41 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <div class="stat-box"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Streak 🔥</div></div>
       <div class="stat-box"><div class="stat-num" id="stat-vol">0t</div><div class="stat-lbl">Volumen</div></div>
     </div>
-    <div class="section-label" style="margin-top:20px">Nächste Einheit</div>
-<div style="padding:0 20px">
-  <div class="probe-card" id="next-workout-card" onclick="startNextWorkout()" style="margin:0">
-    <div class="probe-card-header">
-      <span class="probe-icon">⏭️</span>
-      <span class="probe-title" id="next-workout-title">Nächste Einheit</span>
+    <div class="section-label" style="margin-top:20px">Probetraining</div>
+    <div class="probe-card" onclick="showView('probe')">
+      <div class="probe-card-header">
+        <span class="probe-icon">🔬</span>
+        <span class="probe-title">Einstiegstest starten</span>
+      </div>
+      <div class="probe-desc">Teste deine Gewichte – die KI analysiert deine Leistung und stellt deinen personalisierten Plan zusammen.</div>
     </div>
-    <div class="probe-desc" id="next-workout-desc">Erstelle zuerst deinen Plan – danach schlägt dir die App automatisch deine nächste Einheit vor.</div>
+    <div class="section-label" style="margin-top:20px">Training wählen</div>
+    <div class="day-cards" id="day-cards-container">
+      <div class="day-card" onclick="startWorkout('A')">
+        <div class="day-accent"></div>
+        <div class="day-card-top"><div class="day-tag">TAG A</div><div class="day-last" id="last-A"></div></div>
+        <div class="day-name">Brust & Trizeps</div>
+        <div class="day-exlist">Bankdrücken · Fliegende · Dips · +2</div>
+        <div class="day-done" id="badge-A">✓ Heute erledigt</div>
+      </div>
+      <div class="day-card" onclick="startWorkout('B')">
+        <div class="day-accent"></div>
+        <div class="day-card-top"><div class="day-tag">TAG B</div><div class="day-last" id="last-B"></div></div>
+        <div class="day-name">Rücken & Bizeps</div>
+        <div class="day-exlist">Rudern · Kreuzheben · Bizepscurl · +2</div>
+        <div class="day-done" id="badge-B">✓ Heute erledigt</div>
+      </div>
+      <div class="day-card" onclick="startWorkout('C')">
+        <div class="day-accent"></div>
+        <div class="day-card-top"><div class="day-tag">TAG C</div><div class="day-last" id="last-C"></div></div>
+        <div class="day-name">Beine & Schultern</div>
+        <div class="day-exlist">Kniebeugen · Ausfallschritte · Schulterdrücken · +2</div>
+        <div class="day-done" id="badge-C">✓ Heute erledigt</div>
+      </div>
+    </div>
   </div>
-</div>
-<div style="padding:12px 20px 0">
-  <button class="btn-ghost" style="width:100%" onclick="showView('training')">Zum Trainingsplan</button>
 </div>
 
-    </div>
-  </div>
-</div>
 <!-- WORKOUT -->
 <div id="view-workout" class="view">
   <div class="wk-header">
@@ -527,7 +545,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
   <button class="nav-btn active" id="nav-home" onclick="showView('home')">
     <span class="nav-icon">🏠</span>Home
   </button>
-  <button class="nav-btn" id="nav-training" onclick="showView('training')">
+  <button class="nav-btn" id="nav-workout" onclick="showView('home')">
     <span class="nav-icon">💪</span>Training
   </button>
   <button class="nav-btn" id="nav-stats" onclick="showView('stats')">
@@ -806,7 +824,7 @@ async function startApp(){
   await loadFromFirestore();
   btn.textContent = 'Los geht\'s 💪';
   btn.disabled = false;
-  showView('plan');
+  showView('home');
 }
 
 function showView(name){
@@ -819,142 +837,14 @@ function showView(name){
   if(name==='stats')renderStats();
   if(name==='probe')initProbe();
   if(name==='plan')initPlan();
- if(name==='training')renderTraining();
 }
-
-// ============================================================
-// PLAN / TRAINING HELPERS
-// ============================================================
-function normalizeDefaultPlan(){
-  return {
-    planName: 'Standardplan',
-    note: 'Vorgefertigter Plan',
-    days: Object.keys(PLAN).map(k => ({
-      id: k,
-      day: 'Tag ' + k,
-      focus: PLAN[k].name,
-      exercises: PLAN[k].exercises
-    }))
-  };
-}
-
-function normalizeCustomPlan(p){
-  if(!p || !p.days || !Array.isArray(p.days) || p.days.length===0) return null;
-  return {
-    planName: p.planName || 'Dein Plan',
-    note: p.note || '',
-    days: p.days.map((d,i)=>{
-      const mm = (d.day||'').match(/([A-Z])/);
-      const id = d.id || (mm?mm[1]:String(i+1));
-      return {
-        id,
-        day: d.day || ('Tag ' + id),
-        focus: d.focus || d.name || 'Training',
-        exercises: d.exercises || []
-      };
-    })
-  };
-}
-
-function getActivePlan(){
-  const cp = getData('customPlan', null);
-  const norm = normalizeCustomPlan(cp);
-  return norm || normalizeDefaultPlan();
-}
-
-function getProbeWeightFor(exName){
-  const pw = getData('probeWeights', null);
-  if(!pw || !Array.isArray(pw)) return null;
-  const hit = pw.find(w => (w.exercise||'')===exName);
-  return hit ? hit.workingKg : null;
-}
-
-function getLastDateForDay(dayId){
-  const history = getData('wkHistory', []);
-  const items = history.filter(h => String(h.day)===String(dayId));
-  if(items.length===0) return null;
-  items.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
-  return items[0].date || null;
-}
-
-function getNextWorkoutSuggestion(){
-  const hasCustom = !!normalizeCustomPlan(getData('customPlan', null));
-  if(!hasCustom) return { type:'no-plan' };
-  const plan = getActivePlan();
-  const scored = plan.days.map((d, idx) => {
-    const last = getLastDateForDay(d.id);
-    const score = last ? last : '0000-00-00';
-    return { d, idx, last, score };
-  });
-  scored.sort((a,b)=> a.score.localeCompare(b.score) || a.idx - b.idx);
-  return { type:'workout', day: scored[0].d, last: scored[0].last };
-}
-
-function startNextWorkout(){
-  const sug = getNextWorkoutSuggestion();
-  if(sug.type==='no-plan'){
-    showView('plan');
-    return;
-  }
-  startWorkout(sug.day.id);
-}
-
-function renderTraining(){
-  const plan = getActivePlan();
-  const header = document.getElementById('training-plan-header');
-  const hasCustom = !!normalizeCustomPlan(getData('customPlan', null));
-  const hasProbe = !!getData('probeWeights', null);
-
-  header.innerHTML = `
-    <div class="card card-pad" style="margin-top:0">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.5px">${plan.planName}</div>
-      ${plan.note ? `<div style=\"font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5\">${plan.note}</div>` : ''}
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-        <button class="btn-outline" onclick="showView('plan')">Plan ${hasCustom ? 'ändern' : 'erstellen'}</button>
-        <button class="btn-outline ${hasProbe ? 'active' : ''}" onclick="showView('probe')">Einstiegstest ${hasProbe ? '✓' : ''}</button>
-      </div>
-    </div>
-  `;
-
-  const hint = document.getElementById('probe-hint');
-  if(hint){
-    hint.textContent = hasProbe ? 'Gewichte gespeichert ✓ – sie werden im Training als Platzhalter angezeigt.' : 'Teste deine Gewichte – danach werden passende Arbeitsgewichte als Platzhalter im Training angezeigt.';
-  }
-
-  const cont = document.getElementById('training-day-cards');
-  cont.innerHTML = '';
-
-  plan.days.forEach((d) => {
-    const card = document.createElement('div');
-    card.className = 'day-card';
-    card.onclick = () => startWorkout(d.id);
-
-    const exNames = (d.exercises||[]).map(e=>e.name).slice(0,4);
-    const exText = exNames.join(' · ') + ((d.exercises||[]).length>4 ? ' · +' + ((d.exercises||[]).length-4) : '');
-
-    const last = getLastDateForDay(d.id);
-    const lastText = last ? new Date(last).toLocaleDateString('de-DE') : 'Noch nie';
-
-    card.innerHTML = `
-      <div class="day-accent"></div>
-      <div class="day-card-top">
-        <div class="day-tag">${(d.day||'').toUpperCase()}</div>
-        <div class="day-last">${lastText}</div>
-      </div>
-      <div class="day-name">${d.focus || 'Training'}</div>
-      <div class="day-exlist">${exText || '—'}</div>
-    `;
-
-    cont.appendChild(card);
-  });
-}
-
 
 // ============================================================
 // HOME
 // ============================================================
 function renderHome(){
   const history=getData('wkHistory',[]);
+  const t=today();
   document.getElementById('stat-total').textContent=history.length;
 
   // streak
@@ -967,8 +857,7 @@ function renderHome(){
     if(diff<=1){streak++;check=new Date(dd);check.setDate(check.getDate()-1)}else break;
   }
   document.getElementById('stat-streak').textContent=streak;
-
-  const totalKg=history.reduce((a,w)=>a+(w.sets||[]).reduce((b,s)=>(b+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0)),0),0);
+  const totalKg=history.reduce((a,w)=>a+(w.sets||[]).reduce((b,s)=>b+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0),0);
   document.getElementById('stat-vol').textContent=(totalKg/1000).toFixed(1)+'t';
 
   // streak dots
@@ -984,23 +873,16 @@ function renderHome(){
   }
   const lbl=document.createElement('div');lbl.className='streak-lbl';lbl.textContent='7 Tage';row.appendChild(lbl);
 
-  // Next workout tile
-  const tTitle=document.getElementById('next-workout-title');
-  const tDesc=document.getElementById('next-workout-desc');
-  const card=document.getElementById('next-workout-card');
-  const sug = getNextWorkoutSuggestion();
-  if(tTitle && tDesc && card){
-    if(sug.type==='no-plan'){
-      tTitle.textContent = 'Plan erstellen';
-      tDesc.textContent = 'Starte mit deinem Ziel – danach schlägt dir die App deine nächste Einheit vor.';
-      card.onclick = () => showView('plan');
-    }else{
-      tTitle.textContent = sug.day.day.toUpperCase() + ': ' + (sug.day.focus || 'Training');
-      const lastTxt = sug.last ? ('Zuletzt: ' + new Date(sug.last).toLocaleDateString('de-DE')) : 'Noch nie gemacht';
-      tDesc.textContent = lastTxt + ' · Tippe zum Starten.';
-      card.onclick = () => startWorkout(sug.day.id);
-    }
-  }
+  ['A','B','C'].forEach(day=>{
+    const last=history.filter(h=>h.day===day).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const el=document.getElementById('last-'+day);
+    const badge=document.getElementById('badge-'+day);
+    if(last){
+      const diff=Math.round((new Date()-new Date(last.date))/86400000);
+      el.textContent=diff===0?'Heute':diff===1?'Gestern':`Vor ${diff} Tagen`;
+      badge.style.display=last.date===t?'block':'none';
+    }else{el.textContent='Noch nie';badge.style.display='none';}
+  });
 }
 
 // ============================================================
@@ -1008,30 +890,26 @@ function renderHome(){
 // ============================================================
 function startWorkout(day){
   activeDay=day;curExIdx=0;wkData={};wkStart=Date.now();
-  const planAll = getActivePlan();
-  const planDay = planAll.days.find(d=>String(d.id)===String(day)) || planAll.days[0];
+  const plan=PLAN[day];
+  document.getElementById('wk-day-tag').textContent='TAG '+day;
+  document.getElementById('wk-title').textContent=plan.name;
 
-  document.getElementById('wk-day-tag').textContent=(planDay.day||('Tag '+day)).toUpperCase();
-  document.getElementById('wk-title').textContent=planDay.focus || 'Training';
-
+  // Build exercise blocks
   const scroll=document.getElementById('ex-scroll');
   scroll.innerHTML='';
-
   const history=getData('wkHistory',[]);
-  const lastWk=history.filter(h=>String(h.day)===String(day)).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const lastWk=history.filter(h=>h.day===day).sort((a,b)=>b.date.localeCompare(a.date))[0];
 
-  (planDay.exercises||[]).forEach((ex,idx)=>{
-    const info=EXERCISES[ex.name] || {};
+  plan.exercises.forEach((ex,idx)=>{
+    const info=EXERCISES[ex.name]||{};
     const block=document.createElement('div');
     block.className='ex-block'+(idx===0?' active':'');
     block.id='ex-block-'+idx;
 
-    const probeKg = getProbeWeightFor(ex.name);
-
     let setsHtml='';
     for(let s=0;s<ex.sets;s++){
       const lastSet=lastWk?lastWk.sets.find(ls=>ls.exIdx===idx&&ls.setIdx===s):null;
-      const phKg=lastSet?lastSet.kg:(probeKg!=null?probeKg:(info.beginnerKg?info.beginnerKg.split('–')[0]:'—'));
+      const phKg=lastSet?lastSet.kg:(info.beginnerKg?info.beginnerKg.split('–')[0]:'—');
       const phReps=lastSet?lastSet.reps:ex.reps;
       setsHtml+=`<div class="set-row" id="set-${idx}-${s}">
         <div class="set-num">${s+1}</div>
@@ -1045,34 +923,30 @@ function startWorkout(day){
 
     const weightInfo=info.beginnerKg?`<div class="weight-rec">
       <div class="weight-chip"><div class="weight-chip-val">${info.beginnerKg}</div><div class="weight-chip-lbl">Einsteiger kg</div></div>
-      ${info.intermediateKg?`<div class=\"weight-chip\"><div class=\"weight-chip-val\">${info.intermediateKg}</div><div class=\"weight-chip-lbl\">Fortgesch. kg</div></div>`:''}
+      ${info.intermediateKg?`<div class="weight-chip"><div class="weight-chip-val">${info.intermediateKg}</div><div class="weight-chip-lbl">Fortgesch. kg</div></div>`:''}
     </div>`:'';
 
-    const probeBadge = (probeKg!=null)
-      ? `<div class="pr-badge" style="margin:10px 0 14px">🎯 <span style="font-size:12px;color:var(--text-mid)">Platzhalter aus Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong></span></div>`
-      : '';
-
     block.innerHTML=`
-      <div class="ex-meta">Übung ${idx+1} von ${(planDay.exercises||[]).length} · ${ex.sets} Sätze à ${ex.reps} Wdh.</div>
+      <div class="ex-meta">Übung ${idx+1} von ${plan.exercises.length} · ${ex.sets} Sätze à ${ex.reps} Wdh.</div>
       <div class="ex-name">${ex.name}</div>
-      <div class="ex-muscles">${info.muscles || ''}</div>
-      ${probeBadge}
+      <div class="ex-muscles">${info.muscles||''}</div>
       <button class="ex-info-toggle" onclick="toggleInfo(${idx})" id="info-toggle-${idx}">
         <span>📖</span><span>Technik & Empfehlungen</span><span class="arrow">▼</span>
       </button>
       <div class="ex-info-panel" id="info-panel-${idx}">
-        <div class="ex-info-section"><div class="ex-info-label">Ausführung</div><div class="ex-info-text">${info.description || ''}</div></div>
-        ${info.mistakes?`<div class=\"ex-info-section\"><div class=\"ex-info-hint\">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
-        ${info.breathing?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Atmung</div><div class=\"ex-info-text\">${info.breathing}</div></div>`:''}
-        ${info.beginnerKg?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Empfohlene Gewichte</div>${weightInfo}</div>`:''}
+        <div class="ex-info-section"><div class="ex-info-label">Ausführung</div><div class="ex-info-text">${info.description||''}</div></div>
+        ${info.mistakes?`<div class="ex-info-section"><div class="ex-info-hint">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
+        ${info.breathing?`<div class="ex-info-section"><div class="ex-info-label">Atmung</div><div class="ex-info-text">${info.breathing}</div></div>`:''}
+        ${info.beginnerKg?`<div class="ex-info-section"><div class="ex-info-label">Empfohlene Gewichte</div>${weightInfo}</div>`:''}
       </div>
       <div class="sets-list" style="margin-top:2px">${setsHtml}</div>
     `;
     scroll.appendChild(block);
   });
 
+  // Progress bar
   const prog=document.getElementById('wk-prog');prog.innerHTML='';
-  (planDay.exercises||[]).forEach((_,i)=>{
+  plan.exercises.forEach((_,i)=>{
     const seg=document.createElement('div');
     seg.className='prog-seg'+(i===0?' cur':'');
     seg.id='prog-seg-'+i;prog.appendChild(seg);
@@ -1083,6 +957,8 @@ function startWorkout(day){
   document.getElementById('ex-nav').style.display='';
   updateWkNav();
   showView('workout');
+  document.getElementById('nav-workout').classList.add('active');
+  document.getElementById('nav-home').classList.remove('active');
 }
 
 function toggleInfo(idx){
@@ -1111,8 +987,7 @@ function toggleSet(exIdx,setIdx,rest){
 }
 
 function updateWkNav(){
-  const planAll=getActivePlan();
-  const plan=planAll.days.find(d=>String(d.id)===String(activeDay)) || planAll.days[0];
+  const plan=PLAN[activeDay];
   const isLast=curExIdx===plan.exercises.length-1;
   const nb=document.getElementById('btn-next-ex');
   nb.textContent=isLast?'Fertig ✓':'Weiter →';
@@ -1134,8 +1009,7 @@ function prevEx(){
 }
 
 function nextEx(){
-  const planAll=getActivePlan();
-  const plan=planAll.days.find(d=>String(d.id)===String(activeDay)) || planAll.days[0];
+  const plan=PLAN[activeDay];
   if(curExIdx<plan.exercises.length-1){
     document.getElementById('ex-block-'+curExIdx).classList.remove('active');
     document.getElementById('prog-seg-'+curExIdx).classList.remove('cur');
@@ -1150,8 +1024,7 @@ function nextEx(){
 
 function completeWorkout(){
   document.getElementById('prog-seg-'+curExIdx).classList.replace('cur','done');
-  const planAll=getActivePlan();
-  const plan=planAll.days.find(d=>String(d.id)===String(activeDay)) || planAll.days[0];
+  const plan=PLAN[activeDay];
   const sets=[];
   plan.exercises.forEach((ex,exIdx)=>{
     for(let s=0;s<ex.sets;s++){
@@ -1161,12 +1034,12 @@ function completeWorkout(){
   });
   const duration=Math.round((Date.now()-wkStart)/60000);
   const vol=sets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
-  const entry={id:Date.now(),day:activeDay,dayName:plan.focus,date:today(),timestamp:Date.now(),duration,sets,totalVolume:vol};
+  const entry={id:Date.now(),day:activeDay,dayName:plan.name,date:today(),timestamp:Date.now(),duration,sets,totalVolume:vol};
   const h=getData('wkHistory',[]);h.push(entry);setData('wkHistory',h);
 
   document.getElementById('ex-scroll').style.display='none';
   document.getElementById('ex-nav').style.display='none';
-  document.getElementById('done-sub').textContent=`${(plan.day||('Tag '+activeDay)).toUpperCase()}: ${plan.focus}`;
+  document.getElementById('done-sub').textContent=`Tag ${activeDay}: ${plan.name}`;
   document.getElementById('done-stats').innerHTML=`
     <div class="done-stat"><div class="done-stat-n">${sets.length}</div><div class="done-stat-l">Sätze</div></div>
     <div class="done-stat"><div class="done-stat-n">${duration}</div><div class="done-stat-l">Min.</div></div>
@@ -1175,7 +1048,7 @@ function completeWorkout(){
   document.getElementById('done-screen').classList.add('show');
 }
 
-function finishWorkout(){showView('training');}
+function finishWorkout(){showView('home');}
 function confirmBack(){if(confirm('Training abbrechen?'))showView('home');}
 
 // ============================================================
@@ -1412,7 +1285,6 @@ function updateProbeNav(){
 }
 
 async function startAIAnalysis(){
-  // Lokale Auswertung (ohne externe KI / ohne API-Call)
   document.getElementById('probe-scroll').style.display='none';
   document.getElementById('probe-nav').style.display='none';
   const aiResult=document.getElementById('ai-result');
@@ -1421,97 +1293,45 @@ async function startAIAnalysis(){
   document.getElementById('ai-loading').style.display='block';
   document.getElementById('ai-content').style.display='none';
 
-  await new Promise(r=>setTimeout(r, 900));
+  const testSummary=Object.values(probeData).map(d=>`${d.name}: ${d.kg}kg × ${d.reps} Wdh. (Gefühl: ${d.effort==='easy'?'leicht':d.effort==='good'?'gut':d.effort==='hard'?'schwer':'zu schwer'})`).join('\n');
+
+  const prompt=`Du bist ein erfahrener Personal Trainer. Ein Sportler hat gerade seinen Einstiegstest gemacht:
+
+${testSummary}
+
+Erstelle auf Basis dieser Daten einen personalisierten Trainingsplan. Antworte NUR als reines JSON-Objekt ohne Markdown-Backticks, genau so:
+{
+  "assessment": "Eine kurze, motivierende Einschätzung des Trainingsstands auf Deutsch (2-3 Sätze)",
+  "tips": ["Tipp 1", "Tipp 2", "Tipp 3"],
+  "weights": [
+    {"exercise": "Übungsname", "workingKg": 40, "reps": "8-10", "note": "Kurze Erklärung"}
+  ]
+}
+
+Die workingKg sollten ca. 75-80% des getesteten Gewichts betragen, angepasst ans Gefühl. Runde auf sinnvolle Werte (2.5kg Schritte). Für jede getestete Übung einen Eintrag.`;
 
   try{
-    const local = generateLocalProbeResult();
-    renderAIResult(local);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content.map(c=>c.text||'').join('');
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderAIResult(parsed);
   }catch(e){
-    console.error('Local probe analysis failed', e);
     document.getElementById('ai-loading').style.display='none';
     document.getElementById('ai-content').style.display='block';
-    document.getElementById('ai-content').innerHTML=`<div class="no-data">⚠️ Fehler bei der Analyse.<br>Bitte versuche es erneut.<br><br><button class="btn-primary" style="max-width:200px" onclick="initProbe()">Nochmal</button></div>`;
+    document.getElementById('ai-content').innerHTML=`<div class="no-data">⚠️ Fehler bei der KI-Analyse.<br>Bitte versuche es erneut.<br><br><button class="btn-primary" style="max-width:200px" onclick="initProbe()">Nochmal</button></div>`;
   }
-}
-
-// ------------------------------------------------------------
-// Lokale „KI“-Logik: Gewichte & Tipps aus Probetraining ableiten
-// ------------------------------------------------------------
-let lastProbeWeights = null;
-
-function roundToStep(val, step){
-  if(!isFinite(val)) return 0;
-  return Math.round(val/step)*step;
-}
-
-function effortFactor(e){
-  if(e==='easy') return 0.82;
-  if(e==='good') return 0.78;
-  if(e==='hard') return 0.74;
-  return 0.70; // toohard
-}
-
-function repsAdjustment(reps){
-  if(reps >= 13) return 0.03;
-  if(reps >= 11) return 0.01;
-  if(reps <= 7)  return -0.05;
-  if(reps <= 9)  return -0.02;
-  return 0;
-}
-
-function recommendedRepsForExercise(name){
-  if(/Kreuzheben/i.test(name)) return '6–8';
-  if(/Kniebeugen/i.test(name)) return '8–10';
-  if(/Bankdrücken/i.test(name)) return '8–10';
-  if(/Rudern/i.test(name)) return '8–10';
-  if(/Schulterdrücken/i.test(name)) return '8–10';
-  if(/curl/i.test(name)) return '10–12';
-  return '8–10';
-}
-
-function weightNote(effort, reps){
-  if(effort==='easy' && reps>=12) return 'Du hattest noch Reserven – beim nächsten Training kannst du leicht steigern.';
-  if(effort==='good') return 'Guter Bereich – dieses Gewicht ist ein solides Arbeitsgewicht.';
-  if(effort==='hard' && reps>=8) return 'Hart, aber ok – bleib erstmal dabei und steigere erst, wenn es sauber läuft.';
-  return 'Zu schwer – reduziere und achte auf saubere Technik.';
-}
-
-function generateLocalProbeResult(){
-  const rows = Object.values(probeData);
-  if(!rows || rows.length===0) throw new Error('Keine Probetraining-Daten vorhanden');
-
-  const weights = rows.map(d => {
-    const base = effortFactor(d.effort);
-    const adj = repsAdjustment(d.reps);
-    const pct = Math.max(0.65, Math.min(0.85, base + adj));
-    const wk = roundToStep(d.kg * pct, 2.5);
-    const workingKg = wk <= 0 ? 0 : wk;
-    return { exercise: d.name, workingKg, reps: recommendedRepsForExercise(d.name), note: weightNote(d.effort, d.reps) };
-  });
-
-  const scoreMap = {easy:1, good:2, hard:3, toohard:4};
-  const avg = rows.reduce((a,d)=>a + (scoreMap[d.effort]||2), 0) / rows.length;
-
-  let assessment = '';
-  if(avg <= 1.6) assessment = 'Du warst bei vielen Übungen eher zu leicht unterwegs – du hast mehr Kraft als du denkst. Perfekt: wir setzen die Arbeitsgewichte etwas höher an und steigern kontrolliert.';
-  else if(avg <= 2.5) assessment = 'Sehr solide Basis. Deine Auswahl wirkt gut getroffen: kontrolliert, aber fordernd. Mit gleichmäßigen Steigerungen wirst du schnell Fortschritte sehen.';
-  else if(avg <= 3.3) assessment = 'Du hast dich gut gefordert. Für saubere Progression ist es wichtig, die Technik unter Belastung stabil zu halten – lieber kleine Schritte als zu schnell zu viel.';
-  else assessment = 'Du warst häufig am Limit. Das ist nicht schlimm – aber für den Einstieg sind etwas leichtere Arbeitsgewichte sinnvoll, damit Technik, Umfang und Erholung passen.';
-
-  const tips = [
-    'Steigere nur, wenn du alle Sätze sauber schaffst (z. B. +2,5 kg bei Grundübungen).',
-    'Lass 1–3 Wiederholungen „in Reserve“ – keine Maximaltests im Alltag.',
-    'Wenn du die Ziel-Wiederholungen deutlich verfehlst, reduziere beim nächsten Satz leicht.'
-  ];
-
-  return { assessment, tips, weights };
 }
 
 function renderAIResult(data){
   document.getElementById('ai-loading').style.display='none';
   const content=document.getElementById('ai-content');
   content.style.display='block';
-  lastProbeWeights = data.weights || null;
 
   const tipsHtml=data.tips.map(t=>`<div class="ai-tip"><span class="ai-tip-icon">💡</span><span class="ai-tip-text">${t}</span></div>`).join('');
   const weightsHtml=data.weights.map(w=>`
@@ -1623,7 +1443,6 @@ function wizBack(){
   document.getElementById('wiz-'+wizStep).style.display='block';
 }
 
-
 async function generatePlan(){
   if(!wizLevel){alert('Bitte wähle dein Level aus.');return;}
   document.getElementById('wiz-3').style.display='none';
@@ -1633,121 +1452,49 @@ async function generatePlan(){
   document.getElementById('plan-loading').style.display='block';
   document.getElementById('plan-content').style.display='none';
 
-  // Lokale Plan-Erstellung (ohne externe KI)
-  await new Promise(r=>setTimeout(r, 900));
+  const goalLabels={muskel:'Muskeln aufbauen',kraft:'Kraft steigern',abnehmen:'Abnehmen / Fettabbau',fitness:'Allgemeine Fitness'};
+  const levelLabels={anfaenger:'Einsteiger (unter 6 Monate)',fortgeschritten:'Fortgeschritten (1–3 Jahre)'};
+
+  const prompt=`Du bist ein erfahrener Personal Trainer. Erstelle einen Trainingsplan mit diesen Vorgaben:
+- Ziel: ${goalLabels[wizGoal]}
+- Trainingstage pro Woche: ${wizDays}
+- Zeit pro Einheit: ${wizTime} Minuten
+- Level: ${levelLabels[wizLevel]}
+- Verfügbares Equipment: Langhantel + Scheiben, Kurzhanteln, Hantelbank (flach & schräg), Ergometer, Stufe
+
+Antworte NUR als reines JSON ohne Markdown-Backticks:
+{
+  "planName": "Name des Plans",
+  "note": "Kurze Erklärung des Plans und warum er für dieses Ziel gut ist (2-3 Sätze)",
+  "days": [
+    {
+      "day": "Tag A",
+      "focus": "Muskelgruppe",
+      "exercises": [
+        {"name": "Übungsname", "sets": 4, "reps": "8-10", "rest": 90, "note": "Kurzer Tipp"}
+      ]
+    }
+  ]
+}
+
+Erstelle genau ${wizDays} Trainingstage. Passe Satzanzahl, Wiederholungen und Übungsauswahl ans Ziel und Level an.`;
+
   try{
-    const plan = generateLocalPlan();
-    renderPlanResult(plan);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content.map(c=>c.text||'').join('');
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderPlanResult(parsed);
   }catch(e){
-    console.error('Local plan generation failed', e);
     document.getElementById('plan-loading').style.display='none';
     document.getElementById('plan-content').style.display='block';
     document.getElementById('plan-content').innerHTML=`<div class="no-data" style="padding:40px 0">⚠️ Fehler beim Erstellen.<br>Bitte versuche es erneut.<br><br><button class="btn-primary" style="max-width:200px" onclick="initPlan()">Nochmal</button></div>`;
   }
-}
-
-function pick(list){return list[Math.floor(Math.random()*list.length)]}
-
-function generateLocalPlan(){
-  const goalLabels={muskel:'Muskeln aufbauen',kraft:'Kraft steigern',abnehmen:'Abnehmen / Fettabbau',fitness:'Allgemeine Fitness'};
-  const levelLabels={anfaenger:'Einsteiger',fortgeschritten:'Fortgeschritten'};
-
-  const days = wizDays || 3;
-  const time = wizTime || 45;
-  const goal = wizGoal || 'muskel';
-  const level = wizLevel || 'anfaenger';
-
-  // Volumen je nach Zeit
-  const maxExercises = time <= 30 ? 5 : time <= 45 ? 6 : 7;
-  const baseSets = (goal==='kraft') ? (level==='anfaenger'?4:5) : (level==='anfaenger'?3:4);
-  const restBase = (goal==='kraft') ? 120 : 90;
-
-  // Übungs-Pool (Equipment: Langhantel, Kurzhanteln, Bank, Stufe)
-  const pool = {
-    push: ['Langhantel Bankdrücken','Schrägbankdrücken','Kurzhantel Fliegende','Enges Bankdrücken','Trizeps Dips','Schulterdrücken','Kurzhantel Seitheben'],
-    pull: ['Langhantel Rudern','Einarmiges Rudern','Kreuzheben','Kurzhantel Bizepscurl','Hammercurl'],
-    legs: ['Langhantel Kniebeugen','Kurzhantel Ausfallschritte','Wadenheben (Stufe)']
-  };
-
-  function repsFor(ex){
-    if(goal==='kraft'){
-      if(/Kreuzheben|Kniebeugen|Bankdrücken|Rudern|Schulterdrücken/i.test(ex)) return '4–6';
-      return '6–8';
-    }
-    if(goal==='abnehmen'){
-      if(/Kreuzheben|Kniebeugen|Bankdrücken|Rudern/i.test(ex)) return '8–10';
-      return '12–15';
-    }
-    // muskel/fitness
-    if(/Kreuzheben/i.test(ex)) return '6–8';
-    if(/Kniebeugen/i.test(ex)) return '8–10';
-    if(/curl|Seitheben|Fliegende/i.test(ex)) return '10–15';
-    return '8–12';
-  }
-
-  function restFor(ex){
-    if(goal==='kraft') return /Kreuzheben|Kniebeugen|Bankdrücken/i.test(ex) ? 150 : 120;
-    if(goal==='abnehmen') return 60;
-    return /Kreuzheben|Kniebeugen/i.test(ex) ? 120 : restBase;
-  }
-
-  function buildDay(label, focus, groups){
-    const exercises = [];
-    const used = new Set();
-    groups.forEach(group => {
-      const groupList = pool[group] || [];
-      if(groupList.length===0) return;
-      const count = Math.max(1, Math.round(maxExercises / groups.length));
-      for(let i=0;i<count && exercises.length < maxExercises;i++){
-        let ex = pick(groupList);
-        let guard=0;
-        while(used.has(ex) && guard<10){ ex = pick(groupList); guard++; }
-        used.add(ex);
-        exercises.push({
-          name: ex,
-          sets: /Kreuzheben|Kniebeugen|Bankdrücken|Rudern|Schulterdrücken/i.test(ex) ? baseSets : Math.max(2, baseSets-1),
-          reps: repsFor(ex),
-          rest: restFor(ex),
-          note: 'Saubere Technik vor Gewicht. Steigere in kleinen Schritten.'
-        });
-      }
-    });
-    return { day: label, focus, exercises };
-  }
-
-  let planDays = [];
-  if(days===2){
-    planDays = [
-      buildDay('Tag A','Ganzkörper', ['push','pull','legs']),
-      buildDay('Tag B','Ganzkörper', ['pull','legs','push'])
-    ];
-  }else if(days===3){
-    planDays = [
-      buildDay('Tag A','Push', ['push','push','legs']),
-      buildDay('Tag B','Pull', ['pull','pull','legs']),
-      buildDay('Tag C','Beine', ['legs','legs','push'])
-    ];
-  }else if(days===4){
-    planDays = [
-      buildDay('Tag A','Oberkörper', ['push','pull','push']),
-      buildDay('Tag B','Unterkörper', ['legs','legs','pull']),
-      buildDay('Tag C','Oberkörper', ['pull','push','pull']),
-      buildDay('Tag D','Unterkörper', ['legs','legs','push'])
-    ];
-  }else{
-    planDays = [
-      buildDay('Tag A','Push', ['push','push','legs']),
-      buildDay('Tag B','Pull', ['pull','pull','legs']),
-      buildDay('Tag C','Beine', ['legs','legs','pull']),
-      buildDay('Tag D','Oberkörper', ['push','pull','push']),
-      buildDay('Tag E','Ganzkörper leicht', ['legs','push','pull'])
-    ].slice(0, days);
-  }
-
-  const planName = `${goalLabels[goal]} – ${days} Tage`;
-  const note = `Lokaler Plan (${levelLabels[level]}): Fokus auf konstante Progression. Wenn du alle Sätze im Zielbereich schaffst, steigere nächstes Mal minimal (z. B. +2,5 kg bei Grundübungen).`;
-
-  return { planName, note, days: planDays };
 }
 
 function renderPlanResult(plan){
