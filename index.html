@@ -173,11 +173,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 .timer-skip{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 24px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
 
 /* STATS VIEW */
-.ex-picker{display:flex;gap:8px;padding:0 20px 14px;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;cursor:grab;user-select:none}
+.ex-picker{display:flex;gap:8px;padding:0 20px 14px;overflow-x:auto;flex-wrap:nowrap}
 .ex-picker::-webkit-scrollbar{display:none}
 .ex-pill{white-space:nowrap;padding:7px 13px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;flex-shrink:0;transition:all 0.2s}
 .ex-pill.active{background:var(--accent);border-color:var(--accent);color:#0d0d0d;font-weight:600}
-.ex-picker.dragging{cursor:grabbing}
 .chart-card{margin:0 20px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
 .chart-title{font-size:13px;font-weight:600;margin-bottom:2px}
 .chart-sub{font-size:11px;color:var(--text-muted);margin-bottom:14px}
@@ -325,7 +324,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="stats-row">
       <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Einheiten</div></div>
       <div class="stat-box"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">Streak 🔥</div></div>
-      <div class="stat-box"><div class="stat-num" id="stat-vol">0t</div><div class="stat-lbl">Volumen</div></div>
+      <div class="stat-box"><div class="stat-num" id="stat-vol">0t</div><div class="stat-lbl">Bewegtes Gewicht</div></div>
     </div>
     <div class="section-label" style="margin-top:20px">Nächste Einheit</div>
 <div style="padding:0 20px">
@@ -337,6 +336,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="probe-desc" id="next-workout-desc">Erstelle zuerst deinen Plan – danach schlägt dir die App automatisch deine nächste Einheit vor.</div>
   </div>
 </div>
+
+<div style="padding:10px 20px 0;display:flex;gap:10px">
+  <button class="btn-ghost" style="width:100%" id="btn-skip-next" onclick="skipNextWorkout()">Überspringen →</button>
+</div>
+
 <div style="padding:12px 20px 0">
   <button class="btn-ghost" style="width:100%" onclick="showView('training')">Zum Trainingsplan</button>
 </div>
@@ -348,34 +352,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     </div>
   </div>
 </div>
-
-<!-- TRAINING -->
-<div id="view-training" class="view">
-  <div class="scroll-view">
-    <div class="page-header">
-      <div class="page-title">DEIN <span>PLAN</span></div>
-    </div>
-
-    <div id="training-plan-header" style="padding:0 20px 10px"></div>
-
-    <div class="section-label" style="margin-top:6px">Einstieg</div>
-    <div class="probe-card" onclick="showView('probe')" style="margin:0 20px">
-      <div class="probe-card-header">
-        <span class="probe-icon">🔬</span>
-        <span class="probe-title">Einstiegstest starten</span>
-      </div>
-      <div class="probe-desc" id="probe-hint">Teste deine Gewichte – danach werden passende Arbeitsgewichte im Training vorausgefüllt.</div>
-    </div>
-
-    <div class="section-label" style="margin-top:20px">Trainingstage</div>
-    <div class="day-cards" id="training-day-cards"></div>
-
-    <div style="padding:16px 20px 0">
-      <button class="btn-ghost" style="width:100%" onclick="showView('plan')">Plan ansehen / ändern</button>
-    </div>
-  </div>
-</div>
-
 <!-- WORKOUT -->
 <div id="view-workout" class="view">
   <div class="wk-header">
@@ -394,7 +370,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div class="done-title">EINHEIT DONE!</div>
     <div class="done-sub" id="done-sub"></div>
     <div class="done-stats" id="done-stats"></div>
-    <button class="btn-primary" style="max-width:240px" onclick="finishWorkout()">Zur Übersicht</button>
+    <button class="btn-primary" style="max-width:240px" onclick="finishWorkout()">Zum Dashboard</button>
   </div>
 </div>
 
@@ -421,10 +397,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
       <div class="page-title">FORT<span>SCHRITT</span></div>
     </div>
     <div class="ex-picker" id="ex-picker"></div>
-
-<div class="section-label" style="margin-top:10px">Trainingstag</div>
-<div class="ex-picker" id="stats-day-picker"></div>
-
     <div id="progress-content"></div>
     <div class="section-label" style="margin-top:10px">Logbuch</div>
     <div id="hist-list" style="padding:0 20px;display:flex;flex-direction:column;gap:10px;padding-bottom:100px"></div>
@@ -463,10 +435,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
     <div style="font-size:13px;color:var(--text-muted);margin-top:6px">Dein individueller Trainingsplan – von dir gestaltet, von der KI optimiert.</div>
   </div>
   <div class="wizard-steps" id="wiz-steps"></div>
-
-<div id="saved-plan-panel" style="padding:0 20px 10px; display:none"></div>
-<div id="plan-history-panel" style="padding:0 20px 0; display:none"></div>
-
 
   <!-- Step 0: Goal -->
   <div class="wizard-section active" id="wiz-0">
@@ -563,6 +531,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
   </div>
 </div>
 
+
+
+<!-- SESSION DETAIL (STATS) -->
+<div id="view-session" class="view">
+  <div class="scroll-view">
+    <div class="wk-header" style="position:sticky;top:0;z-index:2">
+      <button class="wk-back" onclick="showView('stats')">← Zurück</button>
+      <div class="wk-day-tag" id="sess-day-tag">TAG</div>
+      <div class="wk-title" id="sess-title">Einheit</div>
+    </div>
+
+    <div style="padding:14px 20px 0" id="sess-summary"></div>
+
+    <div class="section-label" style="margin-top:14px">Übungen</div>
+    <div class="ex-picker" id="sess-ex-picker"></div>
+
+    <div id="sess-progress" style="padding-bottom:100px"></div>
+
+    <div style="padding:14px 20px 100px">
+      <button class="btn-ghost" style="width:100%" onclick="deleteSessionConfirm()">Einheit löschen</button>
+    </div>
+  </div>
+</div>
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav" style="display:none">
   <button class="nav-btn active" id="nav-home" onclick="showView('home')">
@@ -587,9 +578,9 @@ const EXERCISES = {
   // BRUST & TRIZEPS
   'Langhantel Bankdrücken': {
     muscles: 'Brust (Pectoralis major) · Trizeps · vordere Schulter',
-    description: 'Setup: Augen unter der Stange, Füße fest in den Boden. Schulterblätter zusammenziehen und nach unten "in die Hosentaschen" drücken. Leichtes Hohlkreuz, Po bleibt auf der Bank.<br><br>Bewegung: Stange kontrolliert zur unteren Brust absenken. Ellenbogen ca. 45–70° zum Oberkörper. Von dort explosiv nach oben drücken, ohne die Schulterblätter zu verlieren.<br><br>Cues: "Brust hoch", "Ellenbogen unter der Stange", "Stange zur Brust – nicht zum Hals".',
-    mistakes: 'Schulterblätter lösen, Ellenbogen komplett seitlich abspreizen, Stange aufspringen lassen, Handgelenke abknicken.',
-    breathing: 'Tief einatmen und Bauch/Brust fest machen vor dem Absenken. Beim Hochdrücken ausatmen.',
+    description: 'Leg dich flach auf die Bank, Augen direkt unter der Stange. Füße flach auf dem Boden. Schulterblätter aktiv zusammenziehen und in die Bank drücken – das stabilisiert die Schultern. Griffbreite: etwas breiter als Schulterbreite. Stange kontrolliert zur unteren Brust führen, kurz halten, dann explosiv drücken bis zur vollen Streckung.',
+    mistakes: 'Ellenbogen nicht über 75° abspreizen – das belastet die Schultern unnötig. Stange nicht aufprallen lassen.',
+    breathing: 'Tief einatmen vor dem Absenken, beim Drücken kräftig ausatmen.',
     startWeight: '30–50% des Körpergewichts als Einstieg',
     beginnerKg: '20–40',
     intermediateKg: '50–80',
@@ -597,9 +588,9 @@ const EXERCISES = {
   },
   'Kurzhantel Fliegende': {
     muscles: 'Brust (breite Dehnung) · vordere Schulter',
-    description: 'Setup: Schulterblätter zusammenziehen und unten halten, leichte Ellenbogenbeugung. Hanteln über der Brust, Handflächen zueinander.<br><br>Bewegung: Arme in einem breiten Bogen absenken bis zur deutlichen Brust-Dehnung (kein Schmerz). Dann wie eine Umarmung zurückführen – Brust zusammenziehen.<br><br>Cues: "Bogen, nicht drücken", "Ellenbogen weich", "Dehnung kontrolliert".',
-    mistakes: 'Zu schwer → wird zum Drücken, zu tief absenken (Schulterstress), Ellenbogen komplett durchstrecken.',
-    breathing: 'Beim Absenken einatmen, beim Schließen ausatmen.',
+    description: 'Flach auf der Bank, Kurzhanteln über der Brust, Arme leicht gebeugt. Arme in einem Bogen weit zur Seite absenken, bis du eine tiefe Dehnung in der Brust spürst. Dann wieder zusammenführen wie eine Umarmung.',
+    mistakes: 'Zu schweres Gewicht führt dazu, dass du drückst statt fliegst. Leicht bleiben!',
+    breathing: 'Beim Absenken einatmen, beim Zusammenführen ausatmen.',
     startWeight: '8–15 kg pro Hand für Einsteiger',
     beginnerKg: '8–15',
     intermediateKg: '14–22',
@@ -607,9 +598,9 @@ const EXERCISES = {
   },
   'Schrägbankdrücken': {
     muscles: 'Obere Brust · vordere Schulter · Trizeps',
-    description: 'Setup: Bank 30–45°. Schulterblätter wie beim Bankdrücken fixieren (zusammen + nach unten). Füße stabil. Stange über der oberen Brust starten.<br><br>Bewegung: Kontrolliert zur oberen/mittleren Brust absenken, Ellenbogen leicht unter der Stange halten. Hochdrücken, ohne die Schultern nach vorne rutschen zu lassen.<br><br>Cues: "Schulterblätter fest", "Ellenbogen unter der Stange", "Brust hoch".',
-    mistakes: 'Bank zu steil (wird Schulterdrücken), Schulter nach vorne kippt, Stange zu hoch Richtung Hals.',
-    breathing: 'Einatmen beim Absenken, ausatmen beim Drücken.',
+    description: 'Bank auf 30–45° stellen. Bewegung wie flaches Bankdrücken – aber der Fokus liegt auf dem oberen Brustbereich. Schulterblätter zusammenziehen, kontrolliert absenken.',
+    mistakes: 'Bank nicht über 45° stellen – dann wird es zu sehr zur Schulterübung.',
+    breathing: 'Einatmen runter, ausatmen beim Drücken.',
     startWeight: 'Etwas leichter als flaches Bankdrücken',
     beginnerKg: '16–32',
     intermediateKg: '40–65',
@@ -617,9 +608,9 @@ const EXERCISES = {
   },
   'Trizeps Dips': {
     muscles: 'Trizeps · untere Brust · vordere Schulter',
-    description: 'Setup: Hände schulterbreit auf Bank/Stufe, Finger nach vorne. Füße auf Boden (leichter) oder Beine gestreckt (schwerer). Rücken nah an der Bank.<br><br>Bewegung: Langsam absenken bis ca. 90° im Ellenbogen. Dann aus dem Trizeps hochdrücken. Wenn du mehr Brust willst: Oberkörper leicht nach vorn.<br><br>Cues: "Ellenbogen nach hinten", "Schultern unten", "kontrolliert".',
-    mistakes: 'Schultern hochziehen, zu tief runter (Schulter), Ellenbogen nach außen.',
-    breathing: 'Einatmen runter, ausatmen hoch.',
+    description: 'Hände auf Stufe oder Hantelbank, Finger nach vorne. Rücken bleibt nahe an der Bank. Langsam absenken bis die Ellenbogen 90° erreichen, dann drücken. Körper leicht nach vorne geneigt = mehr Trizeps.',
+    mistakes: 'Zu weit nach vorne lehnen belastet die Schultern. Ellenbogen nicht nach außen drücken lassen.',
+    breathing: 'Absenken einatmen, drücken ausatmen.',
     startWeight: 'Eigenkörpergewicht, dann mit Gewicht auf den Oberschenkeln',
     beginnerKg: 'Körpergewicht',
     intermediateKg: '+5–20kg',
@@ -627,8 +618,8 @@ const EXERCISES = {
   },
   'Enges Bankdrücken': {
     muscles: 'Trizeps · innere Brust · vordere Schulter',
-    description: 'Setup: Griff etwa schulterbreit (nicht extrem eng). Schulterblätter fixieren wie beim Bankdrücken, Handgelenke gerade.<br><br>Bewegung: Stange zur unteren Brust absenken, Ellenbogen nah am Körper. Hochdrücken und oben Trizeps anspannen.<br><br>Cues: "Ellenbogen eng", "Handgelenke gerade", "drück den Boden weg".',
-    mistakes: 'Zu enger Griff (Handgelenk), Ellenbogen flaren, Schulter verliert Spannung.',
+    description: 'Griffbreite: etwa Schulterbreite (oder etwas enger). Ellenbogen bleiben nah am Körper beim Absenken – das ist entscheidend für den Trizeps-Fokus. Stange zur unteren Brust führen.',
+    mistakes: 'Zu enger Griff belastet die Handgelenke unnötig.',
     breathing: 'Einatmen runter, ausatmen hoch.',
     startWeight: 'Leichter als normales Bankdrücken',
     beginnerKg: '20–40',
@@ -638,9 +629,9 @@ const EXERCISES = {
   // RÜCKEN & BIZEPS
   'Langhantel Rudern': {
     muscles: 'Rücken (Latissimus, mittlerer Rücken) · Bizeps · hintere Schulter',
-    description: 'Setup: Hüfte nach hinten, Oberkörper 30–45° vor. Rücken neutral, Bauch fest. Stange über Mittelfuß, Griff schulterbreit.<br><br>Bewegung: Ziehe zur unteren Rippe/Bauchnabel. Ellenbogen nah am Körper. Oben Schulterblätter zusammen, dann kontrolliert ablassen.<br><br>Cues: "Zieh mit Ellenbogen", "Rücken lang", "Bauch fest".',
-    mistakes: 'Runder Rücken, Schwung, Stange zu hoch zur Brust, Schulter hochziehen.',
-    breathing: 'Einatmen vor dem Ziehen, beim Ziehen ausatmen.',
+    description: 'Rücken gerade, ca. 45° vorgebeugt, Knie leicht gebeugt. Stange mit schulterbreitem Griff halten. Stange zur unteren Brust/Bauchnabel ziehen, Ellenbogen nah am Körper. Schulterblätter am Ende aktiv zusammenziehen.',
+    mistakes: 'Niemals mit rundem Rücken! Ist wichtiger als das Gewicht.',
+    breathing: 'Beim Ziehen ausatmen, beim Senken einatmen.',
     startWeight: '40–60% des Körpergewichts',
     beginnerKg: '25–50',
     intermediateKg: '60–90',
@@ -648,9 +639,9 @@ const EXERCISES = {
   },
   'Einarmiges Rudern': {
     muscles: 'Rücken (Latissimus) · Bizeps · hintere Schulter',
-    description: 'Setup: Ein Knie + eine Hand auf die Bank, Rücken parallel zum Boden. Schulter weg vom Ohr. Hantel hängt unter der Schulter.<br><br>Bewegung: Ziehe Ellenbogen Richtung Hüfte (nicht Richtung Schulter). Oben kurz Schulterblatt nach hinten/unten, dann langsam ablassen bis volle Streckung.<br><br>Cues: "Ellenbogen zur Hüfte", "Schulter unten", "voll strecken".',
-    mistakes: 'Rumpf aufdrehen, Schulter hochziehen, zu kurze Range of Motion.',
-    breathing: 'Ausatmen beim Ziehen, einatmen beim Absenken.',
+    description: 'Ein Knie und eine Hand auf die Bank abstützen. Rücken parallel zum Boden. Kurzhantel mit gestrecktem Arm nach unten, dann Ellenbogen hoch zur Decke ziehen. Maximale Streckung und Kontraktion.',
+    mistakes: 'Den Rumpf nicht mitdrehen – der Rücken arbeitet, nicht die Schulter.',
+    breathing: 'Ausatmen beim Hochziehen, einatmen beim Senken.',
     startWeight: '15–25 kg pro Hand',
     beginnerKg: '12–22',
     intermediateKg: '22–36',
@@ -658,9 +649,9 @@ const EXERCISES = {
   },
   'Kreuzheben': {
     muscles: 'Gesamter Rücken · Gesäß · Oberschenkelrückseite · Core',
-    description: 'Setup: Stange über Mittelfuß. Schienbein nah an die Stange, Rücken neutral, Brust stolz. Lat aktiv (Stange "zu dir ziehen"). Hände knapp außerhalb der Beine.<br><br>Bewegung: Drücke den Boden weg, Stange bleibt am Körper. Hüfte und Schultern steigen zusammen. Oben aufrecht, keine Überstreckung. Absetzen: Hüfte zurück, Stange an den Beinen entlang.<br><br>Cues: "Bauch hart", "Stange am Körper", "Boden wegdrücken".',
-    mistakes: 'Runder Rücken, Stange weg vom Körper, Hüfte schießt hoch, oben ins Hohlkreuz reißen.',
-    breathing: 'Vor dem Lift tief einatmen, Bauch anspannen, oben kontrolliert ausatmen.',
+    description: 'Füße hüftbreit, Stange über den Mittelfuß. In die Hocke, Rücken gerade, Schulterblätter über der Stange. Stange nah am Körper nach oben führen: erst Beine strecken, dann Hüfte nach vorne schieben. Am Ende aufrecht stehen.',
+    mistakes: 'NIEMALS mit rundem Rücken! Lieber weniger Gewicht. Stange nicht vom Körper wegführen.',
+    breathing: 'Tief einatmen vor dem Lift, Bauchmuskeln anspannen, beim Hochkommen ausatmen.',
     startWeight: '40–60% des Körpergewichts für sicheren Einstieg',
     beginnerKg: '30–60',
     intermediateKg: '80–130',
@@ -668,9 +659,9 @@ const EXERCISES = {
   },
   'Kurzhantel Bizepscurl': {
     muscles: 'Bizeps · Unterarm',
-    description: 'Setup: Aufrecht stehen, Core fest, Schulterblätter neutral. Ellenbogen dicht am Oberkörper, Handgelenke gerade.<br><br>Bewegung: Ohne Schwung curlen. Oben kurz anspannen, langsam ablassen bis fast komplett gestreckt. Optional: oben leicht supinieren (Handfläche mehr nach oben).<br><br>Cues: "Ellenbogen bleibt", "langsam runter", "kein Schwung".',
-    mistakes: 'Schwung aus Rücken, Ellenbogen wandert nach vorne, Handgelenk knickt.',
-    breathing: 'Ausatmen hoch, einatmen runter.',
+    description: 'Stehend oder sitzend, Kurzhanteln hängen, Handgelenke in neutraler Position. Ellenbogen bleibt fixiert seitlich am Körper. Kurzhantel nach oben curlen, dabei Handgelenk leicht nach außen drehen. Langsam und kontrolliert wieder runter.',
+    mistakes: 'Keine Schwungbewegung mit dem Oberkörper! Der Ellenbogen ist die Achse.',
+    breathing: 'Beim Curlen ausatmen, beim Senken einatmen.',
     startWeight: '10–18 kg pro Hand',
     beginnerKg: '8–14',
     intermediateKg: '14–22',
@@ -678,8 +669,8 @@ const EXERCISES = {
   },
   'Hammercurl': {
     muscles: 'Langer Bizepskopf · Brachialis · Unterarm',
-    description: 'Setup: Wie Curl, aber Neutralgriff (Daumen zeigt nach oben). Ellenbogen eng am Körper.<br><br>Bewegung: Curlen ohne Rotation. Oben kurz halten, langsam ablassen. Fokus auf Brachialis/Unterarm, dadurch oft stabiler als klassischer Curl.<br><br>Cues: "Griff neutral", "Ellenbogen still", "kontrolliert".',
-    mistakes: 'Schwung, Schulter hochziehen, zu schnelles Ablassen.',
+    description: 'Wie Bizepscurl, aber die Handflächen zeigen zum Körper (wie ein Hammer halten). Die Bewegung ist identisch, nur die Griffhaltung ändert sich. Trainiert den Bizeps anders und stärkt den Unterarm.',
+    mistakes: 'Ellenbogen nach hinten wandern lassen – Ellenbogen bleibt vorne.',
     breathing: 'Ausatmen hoch, einatmen runter.',
     startWeight: 'Gleich wie Bizepscurl',
     beginnerKg: '8–14',
@@ -689,9 +680,9 @@ const EXERCISES = {
   // BEINE & SCHULTERN
   'Langhantel Kniebeugen': {
     muscles: 'Oberschenkel (Quadrizeps, Ischio) · Gesäß · Core · Rücken',
-    description: 'Setup: Stange auf oberem Rücken, Füße schulterbreit, Zehen leicht nach außen. Bauch fest, Brust hoch, Blick nach vorn.<br><br>Bewegung: Hüfte + Knie gleichzeitig beugen. Knie folgen Zehen (nicht nach innen). Tiefe: mindestens parallel, solange Rücken neutral bleibt. Hoch: aus Mittelfuß/Ferse drücken, Knie nach außen halten.<br><br>Cues: "Knie nach außen", "Brust hoch", "Fersen am Boden".',
-    mistakes: 'Knie fallen nach innen, Fersen heben ab, Rücken rund, zu wenig Tiefe durch fehlende Hüfte.',
-    breathing: 'Oben einatmen, Spannung halten bis über den schwierigsten Punkt, dann ausatmen.',
+    description: 'Stange auf den oberen Rücken (nicht den Nacken). Füße schulterbreit, Zehen leicht nach außen. Hüfte nach hinten und unten bewegen, Knie in Richtung Zehen drücken. Tiefe: Oberschenkel mindestens parallel zum Boden. Aufstehen aus den Fersen drücken.',
+    mistakes: 'Knie nach innen fallen lassen. Rücken rund machen. Nicht tief genug gehen.',
+    breathing: 'Tief einatmen oben, beim Runtergehen Luft halten (Bauchspannung), beim Aufstehen ausatmen.',
     startWeight: '50% des Körpergewichts als sicherer Einstieg',
     beginnerKg: '30–60',
     intermediateKg: '70–120',
@@ -699,9 +690,9 @@ const EXERCISES = {
   },
   'Kurzhantel Ausfallschritte': {
     muscles: 'Oberschenkel · Gesäß · Gleichgewicht · Core',
-    description: 'Setup: Aufrecht stehen, Core fest. Schritt so groß, dass das vordere Schienbein am tiefsten Punkt ungefähr senkrecht bleibt.<br><br>Bewegung: Kontrolliert absenken, hinteres Knie Richtung Boden. Druck beim Hochkommen über den vorderen Fuß (ganzer Fuß). Seitenwechsel gleichmäßig.<br><br>Cues: "Großer Schritt", "Oberkörper aufrecht", "Druck über vorderen Fuß".',
-    mistakes: 'Zu kleiner Schritt (Knie schiebt weit vor), Oberkörper kippt, instabiler Stand.',
-    breathing: 'Einatmen runter, ausatmen hoch.',
+    description: 'Aufrecht stehen, Kurzhanteln in den Händen. Einen großen Schritt nach vorne machen, Hüfte gerade nach unten sinken lassen, bis das hintere Knie fast den Boden berührt. Dann aus dem vorderen Fuß hochdrücken.',
+    mistakes: 'Vorderes Knie nicht über die Zehenspitze. Oberkörper nach vorne fallen lassen.',
+    breathing: 'Beim Absenken einatmen, beim Aufstehen ausatmen.',
     startWeight: '10–20 kg pro Hand',
     beginnerKg: '6–14',
     intermediateKg: '14–24',
@@ -709,8 +700,8 @@ const EXERCISES = {
   },
   'Wadenheben (Stufe)': {
     muscles: 'Wadenmuskel (Gastrocnemius & Soleus)',
-    description: 'Setup: Vorderfuß auf Stufe, Ferse frei. Halte dich leicht fest für Balance. Knie gestreckt (mehr Gastrocnemius) oder leicht gebeugt (mehr Soleus).<br><br>Bewegung: Langsam absenken bis maximale Dehnung, dann kraftvoll hoch auf die Zehenspitze und oben 1 Sekunde halten. Langsame exzentrische Phase ist entscheidend.<br><br>Cues: "Ganz runter", "oben halten", "langsam ablassen".',
-    mistakes: 'Zu kurze Bewegung, wippen/schnell, Gewicht auf Außenkante.',
+    description: 'Vorderfuß auf der Stufe, Ferse hängt frei. Langsam so weit wie möglich absenken (volle Dehnung spüren), dann auf Zehenspitzen stellen und oben kurz halten. Die langsame exzentrische Phase macht den Unterschied!',
+    mistakes: 'Zu schnell arbeiten. Die Dehnung unten weglassen.',
     breathing: 'Oben ausatmen, unten einatmen.',
     startWeight: 'Körpergewicht, dann mit Gewicht oder einbeinig',
     beginnerKg: 'Körpergewicht',
@@ -719,9 +710,9 @@ const EXERCISES = {
   },
   'Schulterdrücken': {
     muscles: 'Schulter (Deltoideus) · Trizeps · obere Brust',
-    description: 'Setup: Hanteln auf Schulterhöhe, Handgelenke gerade. Ellenbogen leicht vor dem Körper. Po/Rumpf fest, Rippen unten (kein Hohlkreuz).<br><br>Bewegung: Drücke die Hanteln in leichter Kurve über den Kopf, oben über der Schulter stapeln. Kontrolliert absenken bis Kinn-/Schulterhöhe.<br><br>Cues: "Rippen runter", "Handgelenk über Ellenbogen", "Kopf durch".',
-    mistakes: 'Hohlkreuz, Hanteln zu weit vor dem Körper, Handgelenke knicken, Schulter hochziehen.',
-    breathing: 'Einatmen unten, ausatmen beim Drücken.',
+    description: 'Sitzend auf der Hantelbank, Rücken gerade. Kurzhanteln auf Schulterhöhe, Ellenbogen leicht vor der Schulterachse. Gerade nach oben drücken, Arme fast strecken (nicht ganz). Kontrolliert absenken.',
+    mistakes: 'Ellenbogen nicht nach hinten wandern lassen. Rücken nicht ins Hohlkreuz fallen.',
+    breathing: 'Beim Drücken ausatmen, beim Senken einatmen.',
     startWeight: '15–25 kg pro Hand',
     beginnerKg: '8–16',
     intermediateKg: '16–28',
@@ -729,9 +720,9 @@ const EXERCISES = {
   },
   'Kurzhantel Seitheben': {
     muscles: 'Seitlicher Schulterkopf (mittlerer Deltoideus)',
-    description: 'Setup: Leicht nach vorn gebeugt (minimal), Core fest. Ellenbogen leicht gebeugt, Handgelenke neutral. Start mit Hanteln neben dem Körper.<br><br>Bewegung: Arme seitlich bis etwa Schulterhöhe anheben. Oben kurz halten, langsam absenken. Fokus: seitlicher Schulterkopf – klein anfangen, sauber bleiben.<br><br>Cues: "Führ mit Ellenbogen", "kleiner Finger minimal höher", "langsam runter".',
-    mistakes: 'Zu schwer → Schwung, Schultern hochziehen, Arme über Schulterhöhe reißen.',
-    breathing: 'Ausatmen hoch, einatmen runter.',
+    description: 'Stehend, Kurzhanteln seitlich am Körper. Arme leicht gebeugt, Hände drehen den kleinen Finger minimal nach oben. Arme seitlich bis Schulterhöhe heben, kurz halten, langsam absenken.',
+    mistakes: 'Zu schweres Gewicht! Das ist eine Isolationsübung. Oberkörper nicht schwingen.',
+    breathing: 'Beim Heben ausatmen, beim Senken einatmen.',
     startWeight: '6–12 kg – leichter als du denkst!',
     beginnerKg: '4–10',
     intermediateKg: '10–18',
@@ -780,7 +771,7 @@ let activeDay=null, curExIdx=0, wkData={}, wkStart=null;
 let timerInterval=null, timerRem=0, timerTotal=0;
 let probeIdx=0, probeData={}, probeEffort={};
 let wizStep=0, wizGoal=null, wizDays=null, wizTime=null, wizLevel=null;
-let progressChart=null, selectedEx=null, selectedDay=null;
+let progressChart=null, selectedEx=null;
 
 // ============================================================
 // FIREBASE SETUP
@@ -806,7 +797,7 @@ function getDeviceId() {
 }
 
 // In-memory cache – synced with Firestore
-let appData = { wkHistory: [], probeWeights: null, customPlan: null, planHistory: [] };
+let appData = { wkHistory: [], probeWeights: null, customPlan: null };
 
 async function loadFromFirestore() {
   try {
@@ -850,28 +841,18 @@ async function startApp(){
   showView('plan');
 }
 
-
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  const view = document.getElementById('view-'+name);
-  if(!view){
-    console.error('View not found:', name);
-    return;
-  }
-  view.classList.add('active');
-
+  document.getElementById('view-'+name).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  let nb=document.getElementById('nav-'+name);
-  if(name==='workout') nb=document.getElementById('nav-training');
-  if(nb) nb.classList.add('active');
-
+  const nb=document.getElementById('nav-'+name);
+  if(nb)nb.classList.add('active');
   if(name==='home')renderHome();
-  if(name==='training')renderTraining();
   if(name==='stats')renderStats();
   if(name==='probe')initProbe();
   if(name==='plan')initPlan();
+ if(name==='training')renderTraining();
 }
-
 
 // ============================================================
 // PLAN / TRAINING HELPERS
@@ -913,6 +894,63 @@ function getActivePlan(){
   return norm || normalizeDefaultPlan();
 }
 
+
+function getPlanDayOrder(){
+  const plan = getActivePlan();
+  return (plan.days||[]).map(d=>String(d.id));
+}
+
+function getNextDayIdInCycle(currentId){
+  const order = getPlanDayOrder();
+  if(order.length===0) return null;
+  const cur = String(currentId||order[0]);
+  const idx = order.indexOf(cur);
+  if(idx===-1) return order[0];
+  return order[(idx+1)%order.length];
+}
+
+function recalculateNextDayId(){
+  const h = getData('wkHistory',[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  const last = h[0];
+  const order = getPlanDayOrder();
+  if(order.length===0) return;
+  if(!last){
+    setData('nextDayId', order[0]);
+    return;
+  }
+  setData('nextDayId', getNextDayIdInCycle(last.day));
+}
+
+function getNextWorkoutSuggestion(){
+  const plan = getActivePlan();
+  const order = (plan.days||[]);
+  if(!order || order.length===0) return { type:'no-plan' };
+
+  // Rotation: nextDayId in storage, else derive from history
+  let nextId = getData('nextDayId', null);
+  if(!nextId){
+    recalculateNextDayId();
+    nextId = getData('nextDayId', String(order[0].id));
+  }
+
+  const dayObj = order.find(d=>String(d.id)===String(nextId)) || order[0];
+  const last = getLastDateForDay(dayObj.id);
+  return { type:'workout', day: dayObj, last };
+}
+
+function skipNextWorkout(){
+  const plan = getActivePlan();
+  const order = (plan.days||[]);
+  if(!order || order.length===0){
+    showView('plan');
+    return;
+  }
+  let nextId = getData('nextDayId', String(order[0].id));
+  const newId = getNextDayIdInCycle(nextId);
+  setData('nextDayId', newId);
+  renderHome();
+}
+
 function getProbeWeightFor(exName){
   const pw = getData('probeWeights', null);
   if(!pw || !Array.isArray(pw)) return null;
@@ -943,10 +981,10 @@ function getNextWorkoutSuggestion(){
 
 function startNextWorkout(){
   const sug = getNextWorkoutSuggestion();
-  if(sug.type==='no-plan'){
-    showView('plan');
-    return;
-  }
+  if(sug.type==='no-plan'){ showView('plan'); return; }
+  startWorkout(sug.day.id);
+}
+
   startWorkout(sug.day.id);
 }
 
@@ -1009,6 +1047,7 @@ function renderHome(){
   try{
     const history=getData('wkHistory',[]);
 
+    // KPIs
     const totalEl=document.getElementById('stat-total');
     const streakEl=document.getElementById('stat-streak');
     const volEl=document.getElementById('stat-vol');
@@ -1025,8 +1064,9 @@ function renderHome(){
     }
     if(streakEl) streakEl.textContent=streak;
 
+    // bewegtes Gewicht (kg)
     const totalKg=history.reduce((a,w)=>a+(w.sets||[]).reduce((b,s)=>(b+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0)),0),0);
-    if(volEl) volEl.textContent=(totalKg/1000).toFixed(1)+'t';
+    if(volEl) volEl.textContent=Math.round(totalKg).toLocaleString('de-DE')+' kg';
 
     // streak dots
     const row=document.getElementById('streak-row');
@@ -1043,38 +1083,49 @@ function renderHome(){
       const lbl=document.createElement('div');lbl.className='streak-lbl';lbl.textContent='7 Tage';row.appendChild(lbl);
     }
 
-    // Next workout tile
+    // Next workout tile + skip
     const tTitle=document.getElementById('next-workout-title');
     const tDesc=document.getElementById('next-workout-desc');
     const card=document.getElementById('next-workout-card');
+    const sb=document.getElementById('btn-skip-next');
+
     const sug = (typeof getNextWorkoutSuggestion==='function') ? getNextWorkoutSuggestion() : {type:'no-plan'};
+
     if(tTitle && tDesc && card){
       if(sug.type==='no-plan'){
         tTitle.textContent = 'Plan erstellen';
         tDesc.textContent = 'Starte mit deinem Ziel – danach schlägt dir die App deine nächste Einheit vor.';
         card.onclick = () => showView('plan');
+        if(sb) sb.style.display='none';
       }else{
         tTitle.textContent = sug.day.day.toUpperCase() + ': ' + (sug.day.focus || 'Training');
-        const lastTxt = sug.last ? ('Zuletzt: ' + formatLastDate(sug.last)) : 'Noch nie gemacht';
+        const lastTxt = sug.last ? ('Zuletzt: ' + new Date(sug.last).toLocaleDateString('de-DE')) : 'Noch nie gemacht';
         tDesc.textContent = lastTxt + ' · Tippe zum Starten.';
         card.onclick = () => startWorkout(sug.day.id);
+        if(sb) sb.style.display='block';
       }
     }
 
-    // Schedule list (all days until cycle repeats)
+    // Schedule list (alle Einheiten im Zyklus)
     const schedule=document.getElementById('home-schedule');
     if(schedule && typeof getActivePlan==='function'){
       const plan = getActivePlan();
       schedule.innerHTML='';
+
+      const nextId = (sug.type==='workout' && sug.day) ? String(sug.day.id) : null;
+
       (plan.days||[]).forEach(d=>{
         const last = (typeof getLastDateForDay==='function') ? getLastDateForDay(d.id) : null;
-        const lastText = formatLastDate(last);
+        const lastText = last ? new Date(last).toLocaleDateString('de-DE') : 'Noch nie';
         const exNames = (d.exercises||[]).map(e=>e.name).slice(0,4);
         const exText = exNames.join(' · ') + ((d.exercises||[]).length>4 ? ' · +' + ((d.exercises||[]).length-4) : '');
 
         const dc=document.createElement('div');
         dc.className='day-card';
         dc.onclick=()=>startWorkout(d.id);
+        if(nextId && String(d.id)===nextId){
+          dc.style.borderColor='rgba(200,245,58,0.55)';
+        }
         dc.innerHTML=`
           <div class="day-accent"></div>
           <div class="day-card-top">
@@ -1092,10 +1143,10 @@ function renderHome(){
   }
 }
 
+
 // ============================================================
 // WORKOUT
 // ============================================================
-
 function startWorkout(day){
   activeDay=day;curExIdx=0;wkData={};wkStart=Date.now();
   const planAll = getActivePlan();
@@ -1121,23 +1172,13 @@ function startWorkout(day){
     let setsHtml='';
     for(let s=0;s<ex.sets;s++){
       const lastSet=lastWk?lastWk.sets.find(ls=>ls.exIdx===idx&&ls.setIdx===s):null;
-
-      const baseKg = lastSet ? parseFloat(lastSet.kg) : (probeKg!=null ? parseFloat(probeKg) : (info.beginnerKg?parseFloat(String(info.beginnerKg).split('–')[0]):''));
-      const kgVal = (baseKg!=='' && !isNaN(baseKg)) ? String(baseKg) : '';
-
-      const repVal = lastSet ? String(lastSet.reps) : repsDefaultFromRange(ex.reps);
-
+      const phKg=lastSet?lastSet.kg:(probeKg!=null?probeKg:(info.beginnerKg?info.beginnerKg.split('–')[0]:'—'));
+      const phReps=lastSet?lastSet.reps:ex.reps;
       setsHtml+=`<div class="set-row" id="set-${idx}-${s}">
         <div class="set-num">${s+1}</div>
         <div class="set-inputs">
-          <div class="set-fw">
-            <input class="set-field" type="number" inputmode="decimal" value="${kgVal}" placeholder="${kgVal || ''}" id="kg-${idx}-${s}" min="0" step="0.5">
-            <div class="set-fl">KG</div>
-          </div>
-          <div class="set-fw">
-            <input class="set-field" type="number" inputmode="numeric" value="${repVal}" placeholder="${ex.reps}" id="reps-${idx}-${s}" min="0">
-            <div class="set-fl">WDH.</div>
-          </div>
+          <div class="set-fw"><input class="set-field" type="number" inputmode="decimal" placeholder="${phKg}" id="kg-${idx}-${s}" min="0" step="0.5"><div class="set-fl">KG</div></div>
+          <div class="set-fw"><input class="set-field" type="number" inputmode="numeric" placeholder="${phReps}" id="reps-${idx}-${s}" min="0"><div class="set-fl">WDH.</div></div>
         </div>
         <button class="set-check" id="check-${idx}-${s}" onclick="toggleSet(${idx},${s},${ex.rest})">✓</button>
       </div>`;
@@ -1145,39 +1186,29 @@ function startWorkout(day){
 
     const weightInfo=info.beginnerKg?`<div class="weight-rec">
       <div class="weight-chip"><div class="weight-chip-val">${info.beginnerKg}</div><div class="weight-chip-lbl">Einsteiger kg</div></div>
-      ${info.intermediateKg?`<div class="weight-chip"><div class="weight-chip-val">${info.intermediateKg}</div><div class="weight-chip-lbl">Fortgesch. kg</div></div>`:''}
+      ${info.intermediateKg?`<div class=\"weight-chip\"><div class=\"weight-chip-val\">${info.intermediateKg}</div><div class=\"weight-chip-lbl\">Fortgesch. kg</div></div>`:''}
     </div>`:'';
 
-    const sourceLine = probeKg!=null ? `🎯 Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong>` : '—';
+    const probeBadge = (probeKg!=null)
+      ? `<div class="pr-badge" style="margin:10px 0 14px">🎯 <span style="font-size:12px;color:var(--text-mid)">Platzhalter aus Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong></span></div>`
+      : '';
 
     block.innerHTML=`
       <div class="ex-meta">Übung ${idx+1} von ${(planDay.exercises||[]).length} · ${ex.sets} Sätze à ${ex.reps} Wdh.</div>
       <div class="ex-name">${ex.name}</div>
       <div class="ex-muscles">${info.muscles || ''}</div>
-
-      <div class="pr-badge" style="margin:10px 0 14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px">
-          <div style="font-size:12px;color:var(--text-mid)">${sourceLine}</div>
-          <div style="display:flex;gap:6px">
-            <button class="btn-outline" style="padding:8px 10px" onclick="event.stopPropagation();adjustExerciseKg(${idx},-2.5)">-2,5</button>
-            <button class="btn-outline" style="padding:8px 10px" onclick="event.stopPropagation();adjustExerciseKg(${idx},2.5)">+2,5</button>
-          </div>
-        </div>
-      </div>
-
+      ${probeBadge}
       <button class="ex-info-toggle" onclick="toggleInfo(${idx})" id="info-toggle-${idx}">
         <span>📖</span><span>Technik & Empfehlungen</span><span class="arrow">▼</span>
       </button>
       <div class="ex-info-panel" id="info-panel-${idx}">
         <div class="ex-info-section"><div class="ex-info-label">Ausführung</div><div class="ex-info-text">${info.description || ''}</div></div>
-        ${info.mistakes?`<div class="ex-info-section"><div class="ex-info-hint">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
-        ${info.breathing?`<div class="ex-info-section"><div class="ex-info-label">Atmung</div><div class="ex-info-text">${info.breathing}</div></div>`:''}
-        ${info.beginnerKg?`<div class="ex-info-section"><div class="ex-info-label">Empfohlene Gewichte</div>${weightInfo}</div>`:''}
+        ${info.mistakes?`<div class=\"ex-info-section\"><div class=\"ex-info-hint\">⚠️ <strong>Häufiger Fehler:</strong> ${info.mistakes}</div></div>`:''}
+        ${info.breathing?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Atmung</div><div class=\"ex-info-text\">${info.breathing}</div></div>`:''}
+        ${info.beginnerKg?`<div class=\"ex-info-section\"><div class=\"ex-info-label\">Empfohlene Gewichte</div>${weightInfo}</div>`:''}
       </div>
-
       <div class="sets-list" style="margin-top:2px">${setsHtml}</div>
     `;
-
     scroll.appendChild(block);
   });
 
@@ -1194,7 +1225,6 @@ function startWorkout(day){
   updateWkNav();
   showView('workout');
 }
-
 
 function toggleInfo(idx){
   const panel=document.getElementById('info-panel-'+idx);
@@ -1274,6 +1304,8 @@ function completeWorkout(){
   const vol=sets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
   const entry={id:Date.now(),day:activeDay,dayName:plan.focus,date:today(),timestamp:Date.now(),duration,sets,totalVolume:vol};
   const h=getData('wkHistory',[]);h.push(entry);setData('wkHistory',h);
+  // Rotation: set next day
+  setData('nextDayId', getNextDayIdInCycle(activeDay));
 
   document.getElementById('ex-scroll').style.display='none';
   document.getElementById('ex-nav').style.display='none';
@@ -1314,162 +1346,107 @@ function addTimer(){timerRem+=30;timerTotal=Math.max(timerTotal,timerRem);update
 
 
 
-// ============================================================
-// UI HELPERS
-// ============================================================
-function enableDragScroll(el){
-  if(!el || el._dragScrollEnabled) return;
-  el._dragScrollEnabled = true;
-  let isDown = false;
-  let startX = 0;
-  let scrollLeft = 0;
+function getHistoryByDay(){
+  const plan = getActivePlan();
+  const days = (plan.days||[]);
+  const map = {};
+  days.forEach(d=>{ map[String(d.id)] = []; });
 
-  const start = (clientX) => {
-    isDown = true;
-    el.classList.add('dragging');
-    startX = clientX;
-    scrollLeft = el.scrollLeft;
-  };
-  const move = (clientX) => {
-    if(!isDown) return;
-    const walk = (clientX - startX);
-    el.scrollLeft = scrollLeft - walk;
-  };
-  const end = () => {
-    isDown = false;
-    el.classList.remove('dragging');
-  };
-
-  el.addEventListener('mousedown', (e)=>{ start(e.pageX); });
-  el.addEventListener('mousemove', (e)=>{ if(!isDown) return; e.preventDefault(); move(e.pageX); });
-  window.addEventListener('mouseup', end);
-
-  el.addEventListener('touchstart', (e)=>{ if(!e.touches || !e.touches[0]) return; start(e.touches[0].pageX); }, {passive:true});
-  el.addEventListener('touchmove', (e)=>{ if(!e.touches || !e.touches[0]) return; move(e.touches[0].pageX); }, {passive:true});
-  el.addEventListener('touchend', end);
-}
-
-function repsDefaultFromRange(r){
-  if(!r) return '';
-  const s = String(r).replace(/\s/g,'');
-  if(/^\d+$/.test(s)) return s;
-  const m = s.match(/(\d+)[–-](\d+)/);
-  if(!m) return '';
-  const a = parseInt(m[1],10);
-  const b = parseInt(m[2],10);
-  return String(Math.round((a+b)/2));
-}
-
-function formatLastDate(d){
-  if(!d) return 'Noch nie';
-  try{ return new Date(d).toLocaleDateString('de-DE'); }catch(e){ return 'Noch nie'; }
-}
-
-function adjustExerciseKg(exIdx, delta){
-  const fields = document.querySelectorAll(`[id^="kg-${exIdx}-"]`);
-  fields.forEach(f=>{
-    const v = parseFloat(f.value);
-    if(!isNaN(v)){
-      const nv = Math.max(0, v + delta);
-      f.value = (Math.round(nv*2)/2).toString();
-    }
+  const history = getData('wkHistory',[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  history.forEach(w=>{
+    const k = String(w.day);
+    if(!map[k]) map[k] = [];
+    map[k].push(w);
   });
+  return { days, map };
 }
 
+function openSession(sessionId){
+  const history = getData('wkHistory',[]);
+  const sess = history.find(w=>String(w.id)===String(sessionId));
+  if(!sess){ alert('Einheit nicht gefunden.'); return; }
+  selectedSessionId = String(sessionId);
 
-// ============================================================
-// PLAN VIEW (Saved plan + history)
-// ============================================================
-function showPlanBuilder(){
-  const sp=document.getElementById('saved-plan-panel');
-  const hp=document.getElementById('plan-history-panel');
-  if(sp) sp.style.display='none';
-  if(hp) hp.style.display='none';
+  const tag=document.getElementById('sess-day-tag');
+  const title=document.getElementById('sess-title');
+  const summary=document.getElementById('sess-summary');
+  if(tag) tag.textContent=('TAG '+sess.day).toUpperCase();
+  if(title) title.textContent=sess.dayName || 'Einheit';
 
-  document.getElementById('wiz-0').style.display='';
-  document.getElementById('wiz-1').style.display='none';
-  document.getElementById('wiz-2').style.display='none';
-  document.getElementById('wiz-3').style.display='none';
-  document.getElementById('plan-result').classList.remove('show');
-  document.getElementById('plan-result').style.display='none';
-
-  wizStep=0;wizGoal=null;wizDays=null;wizTime=null;wizLevel=null;
-  document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('sel'));
-  document.querySelectorAll('.choice-pill').forEach(b=>b.classList.remove('sel'));
-  updateWizSteps();
-}
-
-function applyPlanFromHistory(id){
-  const hist = getData('planHistory', []);
-  const plan = hist.find(p=>String(p.id)===String(id));
-  if(!plan){ alert('Plan nicht gefunden.'); return; }
-  setData('customPlan', plan);
-  alert('Plan geladen ✓');
-  showView('training');
-}
-
-function renderSavedPlanPanel(){
-  const saved = getData('customPlan', null);
-  const panel = document.getElementById('saved-plan-panel');
-  const histPanel = document.getElementById('plan-history-panel');
-  if(!panel || !histPanel) return;
-
-  if(!saved){
-    panel.style.display='none';
-    histPanel.style.display='none';
-    return;
-  }
-
-  panel.style.display='block';
-  panel.innerHTML = `
-    <div class="card card-pad">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.5px">Aktueller Plan</div>
-      <div style="margin-top:8px;font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent)">${saved.planName || 'Dein Plan'}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5">${saved.note || ''}</div>
-      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-        <button class="btn-outline" onclick="showView('training')">Zum Training</button>
-        <button class="btn-outline" onclick="showPlanBuilder()">Neuen Plan erstellen</button>
-      </div>
-    </div>
-  `;
-
-  const hist = getData('planHistory', []);
-  if(!hist || hist.length===0){
-    histPanel.style.display='none';
-    return;
-  }
-
-  histPanel.style.display='block';
-  const items = hist.slice(0,10).map(p=>{
-    const d = p.createdAt ? new Date(p.createdAt) : (p.id ? new Date(Number(p.id)) : null);
-    const ds = d ? d.toLocaleDateString('de-DE') : '';
-    const days = (p.days||[]).length;
-    const exCount = (p.days||[]).reduce((a,d)=>a+(d.exercises||[]).length,0);
-    return `
-      <div class="hist-card" style="margin-bottom:10px">
-        <div class="hist-card-header">
+  const vol = Math.round(sess.totalVolume||0).toLocaleString('de-DE');
+  const dur = sess.duration || '?';
+  if(summary){
+    summary.innerHTML = `
+      <div class="card card-pad">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
           <div>
-            <div class="hist-day-tag">PLAN</div>
-            <div class="hist-name">${p.planName || 'Plan'}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${new Date(sess.date).toLocaleDateString('de-DE')}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Dauer: <strong style="color:var(--text)">${dur} Min.</strong></div>
           </div>
-          <div class="hist-date">${ds}</div>
-        </div>
-        <div class="hist-stats">
-          <div class="hist-stat"><div class="hist-stat-n">${days}</div><div class="hist-stat-l">Tage</div></div>
-          <div class="hist-stat"><div class="hist-stat-n">${exCount}</div><div class="hist-stat-l">Übungen</div></div>
-          <div class="hist-stat"><div class="hist-stat-n">▶</div><div class="hist-stat-l">Laden</div></div>
-        </div>
-        <div style="padding:10px 16px">
-          <button class="btn-ghost" style="width:100%" onclick="applyPlanFromHistory('${p.id}')">Diesen Plan aktivieren</button>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:var(--text-muted)">Bewegtes Gewicht</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent)">${vol} kg</div>
+          </div>
         </div>
       </div>
     `;
-  }).join('');
+  }
 
-  histPanel.innerHTML = `
-    <div class="section-label" style="padding:0;margin:18px 0 10px">Plan-Historie</div>
-    ${items}
-  `;
+  // Exercises in this session
+  const exNames = [...new Set((sess.sets||[]).map(s=>s.exName))];
+  const picker=document.getElementById('sess-ex-picker');
+  if(picker){
+    picker.innerHTML='';
+    exNames.forEach((name,i)=>{
+      const btn=document.createElement('button');
+      btn.className='ex-pill'+(i===0?' active':'');
+      btn.textContent=name;
+      btn.onclick=()=>{
+        document.querySelectorAll('#sess-ex-picker .ex-pill').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        renderProgressChart(name, selectedDay==='ALL'?null:selectedDay);
+        // Render into sess-progress instead of progress-content
+        const pc=document.getElementById('progress-content');
+        const sp=document.getElementById('sess-progress');
+        if(pc && sp){ sp.innerHTML = pc.innerHTML; pc.innerHTML=''; }
+      };
+      picker.appendChild(btn);
+    });
+    enableDragScroll(picker);
+  }
+
+  // Default: first exercise
+  if(exNames[0]){
+    // render into hidden progress-content then move html
+    renderProgressChart(exNames[0], selectedDay==='ALL'?null:selectedDay);
+    const pc=document.getElementById('progress-content');
+    const sp=document.getElementById('sess-progress');
+    if(pc && sp){ sp.innerHTML = pc.innerHTML; pc.innerHTML=''; }
+  }
+
+  showView('session');
+}
+
+function deleteSessionConfirm(){
+  if(!selectedSessionId){ alert('Keine Einheit ausgewählt.'); return; }
+  const ok = confirm('Diese Einheit wirklich löschen?');
+  if(!ok) return;
+  deleteSession(selectedSessionId);
+}
+
+function deleteSession(sessionId){
+  const h = getData('wkHistory',[]).slice();
+  const idx = h.findIndex(w=>String(w.id)===String(sessionId));
+  if(idx===-1){ alert('Einheit nicht gefunden.'); return; }
+  h.splice(idx,1);
+  setData('wkHistory', h);
+
+  // Rotation neu berechnen
+  if(typeof recalculateNextDayId==='function') recalculateNextDayId();
+
+  alert('Einheit gelöscht.');
+  selectedSessionId = null;
+  showView('stats');
 }
 // ============================================================
 // STATS
@@ -1478,30 +1455,44 @@ function renderSavedPlanPanel(){
 function renderStats(){
   const plan = getActivePlan();
   const dayPicker = document.getElementById('stats-day-picker');
-  const exPicker = document.getElementById('ex-picker');
 
+  // Filter: selectedDay = 'ALL' oder Tag-ID
   const days = (plan.days||[]);
-  if(!selectedDay) selectedDay = days[0] ? String(days[0].id) : 'A';
+  if(!selectedDay) selectedDay = 'ALL';
 
+  // Day picker (inkl. Alle Tage)
   if(dayPicker){
     dayPicker.innerHTML='';
+
+    const allBtn=document.createElement('button');
+    allBtn.className='ex-pill'+(selectedDay==='ALL'?' active':'');
+    allBtn.textContent='ALLE TAGE';
+    allBtn.onclick=()=>{ selectedDay='ALL'; renderStats(); };
+    dayPicker.appendChild(allBtn);
+
     days.forEach(d=>{
       const btn=document.createElement('button');
       btn.className='ex-pill'+(String(d.id)===String(selectedDay)?' active':'');
       btn.textContent=(d.day||('Tag '+d.id)).toUpperCase();
-      btn.onclick=()=>{ selectedDay=String(d.id); selectedEx=null; renderStats(); };
+      btn.onclick=()=>{ selectedDay=String(d.id); renderStats(); };
       dayPicker.appendChild(btn);
     });
+
     enableDragScroll(dayPicker);
   }
 
-  const dayObj = days.find(d=>String(d.id)===String(selectedDay)) || days[0];
-  const exList = (dayObj && dayObj.exercises) ? dayObj.exercises.map(e=>e.name) : [];
-  if(!selectedEx) selectedEx = exList[0] || null;
-
+  // Exercise picker stays available for the old UI but we now focus on sessions.
+  const exPicker = document.getElementById('ex-picker');
   if(exPicker){
+    // Union: Plan exercises + logged exercises
+    const planExercises = [...new Set(days.flatMap(d=>(d.exercises||[]).map(e=>e.name)))];
+    const loggedExercises = [...new Set(getData('wkHistory',[]).flatMap(w=>(w.sets||[]).map(s=>s.exName)))];
+    const all = [...new Set([...planExercises, ...loggedExercises])];
+
+    if(!selectedEx) selectedEx = all[0] || null;
+
     exPicker.innerHTML='';
-    exList.forEach(name=>{
+    all.forEach(name=>{
       const btn=document.createElement('button');
       btn.className='ex-pill'+(name===selectedEx?' active':'');
       btn.textContent=name;
@@ -1511,16 +1502,55 @@ function renderStats(){
     enableDragScroll(exPicker);
   }
 
-  if(!selectedEx){
-    const content=document.getElementById('progress-content');
-    if(content) content.innerHTML='<div class="no-data">Keine Übungen gefunden.</div>';
-    const list=document.getElementById('hist-list');
-    if(list) list.innerHTML='';
-    return;
+  // Charts: show for selectedEx with filter
+  if(selectedEx){
+    renderProgressChart(selectedEx, selectedDay==='ALL'?null:selectedDay);
   }
 
-  renderProgressChart(selectedEx, selectedDay);
-  renderHistory(selectedDay);
+  // Logbook grouped by day (2B)
+  const list=document.getElementById('hist-list');
+  if(!list) return;
+
+  const { days: planDays, map } = getHistoryByDay();
+
+  // Filter map if single day
+  const dayIds = selectedDay==='ALL' ? planDays.map(d=>String(d.id)) : [String(selectedDay)];
+
+  const sections = dayIds.map(dayId => {
+    const dayObj = planDays.find(d=>String(d.id)===String(dayId));
+    const header = dayObj ? ((dayObj.day||('Tag '+dayObj.id)).toUpperCase() + ' · ' + (dayObj.focus||'Training')) : ('TAG ' + dayId);
+    const items = (map[dayId]||[]);
+
+    const cards = items.map(w=>{
+      const vol = Math.round(w.totalVolume||0).toLocaleString('de-DE');
+      const uniq = [...new Set((w.sets||[]).map(s=>s.exName))].length;
+      return `
+        <div class="hist-card" style="cursor:pointer" onclick="openSession('${w.id}')">
+          <div class="hist-card-header">
+            <div>
+              <div class="hist-day-tag">TAG ${w.day}</div>
+              <div class="hist-name">${w.dayName || ''}</div>
+            </div>
+            <div class="hist-date">${new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}
+              <div class="hist-time">${w.duration || '?'} Min.</div>
+            </div>
+          </div>
+          <div class="hist-stats">
+            <div class="hist-stat"><div class="hist-stat-n">${(w.sets||[]).length}</div><div class="hist-stat-l">Sätze</div></div>
+            <div class="hist-stat"><div class="hist-stat-n">${vol}</div><div class="hist-stat-l">kg</div></div>
+            <div class="hist-stat"><div class="hist-stat-n">${uniq}</div><div class="hist-stat-l">Übungen</div></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="section-label" style="padding:0;margin:18px 0 10px">${header}</div>
+      ${cards || '<div class="no-data">Noch keine Einheiten.</div>'}
+    `;
+  }).join('');
+
+  list.innerHTML = sections;
 }
 
 
@@ -1528,17 +1558,22 @@ function renderStats(){
 function renderProgressChart(exName, dayId){
   const history=getData('wkHistory',[]);
   const content=document.getElementById('progress-content');
-  const points=[];
 
+  const points=[];
   history
     .filter(w => dayId ? String(w.day)===String(dayId) : true)
-    .sort((a,b)=>a.timestamp-b.timestamp)
+    .sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
     .forEach(w=>{
       const exSets=(w.sets||[]).filter(s=>s.exName===exName);
       if(exSets.length>0){
         const maxKg=Math.max(...exSets.map(s=>parseFloat(s.kg)||0));
         const vol=exSets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
-        points.push({date:w.date,label:new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),maxKg,vol});
+        points.push({
+          date:w.date,
+          label:new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),
+          maxKg,
+          vol
+        });
       }
     });
 
@@ -1566,13 +1601,9 @@ function renderProgressChart(exName, dayId){
 }
 
 
-
-function renderHistory(dayId){
-  const history=getData('wkHistory',[])
-    .filter(w => dayId ? String(w.day)===String(dayId) : true)
-    .sort((a,b)=>b.timestamp-a.timestamp);
+function renderHistory(){
+  const history=getData('wkHistory',[]).sort((a,b)=>b.timestamp-a.timestamp);
   const list=document.getElementById('hist-list');
-  if(!list) return;
   if(history.length===0){
     list.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Noch keine Einheiten.<br>Starte dein erstes Training!</div></div>`;
     return;
@@ -1580,17 +1611,16 @@ function renderHistory(dayId){
   list.innerHTML=history.slice(0,20).map(w=>`
     <div class="hist-card">
       <div class="hist-card-header">
-        <div><div class="hist-day-tag">TAG ${w.day}</div><div class="hist-name">${w.dayName || ''}</div></div>
+        <div><div class="hist-day-tag">TAG ${w.day}</div><div class="hist-name">${w.dayName}</div></div>
         <div class="hist-date">${new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}<div class="hist-time">${w.duration||'?'} Min.</div></div>
       </div>
       <div class="hist-stats">
-        <div class="hist-stat"><div class="hist-stat-n">${(w.sets||[]).length}</div><div class="hist-stat-l">Sätze</div></div>
-        <div class="hist-stat"><div class="hist-stat-n">${Math.round(w.totalVolume||0)}</div><div class="hist-stat-l">kg Vol.</div></div>
-        <div class="hist-stat"><div class="hist-stat-n">${[...new Set((w.sets||[]).map(s=>s.exName))].length}</div><div class="hist-stat-l">Übungen</div></div>
+        <div class="hist-stat"><div class="hist-stat-n">${w.sets.length}</div><div class="hist-stat-l">Sätze</div></div>
+        <div class="hist-stat"><div class="hist-stat-n">${Math.round(w.totalVolume)}</div><div class="hist-stat-l">kg Vol.</div></div>
+        <div class="hist-stat"><div class="hist-stat-n">${[...new Set(w.sets.map(s=>s.exName))].length}</div><div class="hist-stat-l">Übungen</div></div>
       </div>
     </div>`).join('');
 }
-
 
 // ============================================================
 // PROBETRAINING
@@ -1849,21 +1879,31 @@ function renderAIResult(data){
   `;
 }
 
-function saveProbeWeights(){
-  const weights = lastProbeWeights || getData('probeWeights', null);
-  if(!weights){ alert('Keine Gewichte zum Speichern gefunden.'); return; }
+function saveProbeWeights(weights){
   setData('probeWeights',weights);
-  alert('Gewichte gespeichert! Sie werden im Training vorausgefüllt.');
-  showView('training');
+  alert('Gewichte gespeichert! Sie werden als Platzhalter in deinem Training angezeigt.');
+  showView('home');
 }
-
 
 // ============================================================
 // PLAN BUILDER
 // ============================================================
-
 function initPlan(){
-  // Step indicators
+  // Check if plan already generated
+  const savedPlan=getData('customPlan',null);
+  document.getElementById('wiz-0').style.display='';
+  document.getElementById('wiz-1').style.display='none';
+  document.getElementById('wiz-2').style.display='none';
+  document.getElementById('wiz-3').style.display='none';
+  document.getElementById('plan-result').classList.remove('show');
+  document.getElementById('plan-result').style.display='none';
+
+  // Reset
+  wizStep=0;wizGoal=null;wizDays=null;wizTime=null;wizLevel=null;
+  document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('.choice-pill').forEach(b=>b.classList.remove('sel'));
+
+  // Build step indicators
   const stepsEl=document.getElementById('wiz-steps');
   stepsEl.innerHTML='';
   [0,1,2,3].forEach(i=>{
@@ -1872,22 +1912,14 @@ function initPlan(){
     s.id='wiz-step-'+i;stepsEl.appendChild(s);
   });
 
-  const saved = getData('customPlan', null);
-  if(saved){
-    document.getElementById('wiz-0').style.display='none';
-    document.getElementById('wiz-1').style.display='none';
-    document.getElementById('wiz-2').style.display='none';
-    document.getElementById('wiz-3').style.display='none';
-    document.getElementById('plan-result').classList.remove('show');
-    document.getElementById('plan-result').style.display='none';
-    renderSavedPlanPanel();
-    return;
+  // Show saved plan if exists
+  if(savedPlan){
+    const cont=document.getElementById('plan-content');
+    if(cont&&cont.innerHTML){
+      // Already rendered, skip
+    }
   }
-
-  showPlanBuilder();
-  renderSavedPlanPanel();
 }
-
 
 function updateWizSteps(){
   [0,1,2,3].forEach(i=>{
@@ -2066,11 +2098,6 @@ function renderPlanResult(plan){
   document.getElementById('plan-loading').style.display='none';
   const content=document.getElementById('plan-content');
   content.style.display='block';
-  plan.id = plan.id || Date.now();
-  plan.createdAt = plan.createdAt || Date.now();
-  const hist = getData('planHistory', []);
-  hist.unshift(plan);
-  setData('planHistory', hist.slice(0,20));
   setData('customPlan',plan);
 
   const daysHtml=plan.days.map(day=>`
@@ -2097,7 +2124,7 @@ function renderPlanResult(plan){
     </div>
     <div class="plan-note">${plan.note}</div>
     <div style="padding:0 20px">${daysHtml}</div>
-    <button class="plan-save-btn" onclick="alert('Plan gespeichert! ✓'); showView('training');">Zum Training →</button>
+    <button class="plan-save-btn" onclick="alert('Plan gespeichert! ✓')">Plan gespeichert ✓</button>
     <div style="padding:12px 20px"><button class="btn-ghost" style="width:100%" onclick="initPlan()">Neuen Plan erstellen</button></div>
   `;
 }
