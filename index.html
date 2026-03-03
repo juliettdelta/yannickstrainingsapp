@@ -71,6 +71,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM San
 
 /* BOTTOM NAV */
 body[data-view="intro"] #bottom-nav{display:none}
+body[data-view="workout"] #bottom-nav{display:none}
+body[data-view="probe"] #bottom-nav{display:none}
 
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,13,13,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index: 350;padding-bottom:env(safe-area-inset-bottom)}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;background:none;border:none;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:9px;cursor:pointer;transition:color 0.2s;letter-spacing:0.3px;text-transform:uppercase}
@@ -439,7 +441,7 @@ body[data-view="intro"] #bottom-nav{display:none}
 <body data-view="intro">
 <div id="sys-banner" class="sys-banner"></div>
 <div id="toast" class="toast"></div>
-<div class="build-badge" id="build-badge">v13</div>
+<div class="build-badge" id="build-badge">v14</div>
 
 
 <!-- INTRO -->
@@ -1210,7 +1212,8 @@ window.__startAppImpl = async function(){
       const local = localStorage.getItem('appData');
       if(local) appData = { ...appData, ...JSON.parse(local) };
     }catch(_){ }
-    renderHome();
+    migrateWkHistoryDayLabelsIfNeeded();
+  renderHome();
     renderTraining();
     renderStats();
     if(btn){ btn.textContent="Los geht's 💪"; btn.disabled=false; }
@@ -1251,6 +1254,36 @@ function getWeekLabel(mondayKey){
   return ds + '–' + es;
 }
 
+
+
+function migrateWkHistoryDayLabelsIfNeeded(){
+  const hist = getData('wkHistory', []);
+  if(!Array.isArray(hist) || hist.length===0) return;
+  const plan = getActivePlan();
+  const days = (plan && plan.days) ? plan.days : [];
+  if(!Array.isArray(days) || days.length===0) return;
+  let changed=false;
+  hist.forEach(w=>{
+    if(!w) return;
+    // dayLabel ergänzen
+    if(!w.dayLabel){
+      const byId = days.find(d=>String(d.id)===String(w.day));
+      if(byId){ w.dayLabel = byId.day || ('Tag '+byId.id); changed=true; return; }
+      const byName = days.find(d=>String(d.focus||'')===String(w.dayName||''));
+      if(byName){
+        w.day = byName.id;
+        w.dayLabel = byName.day || ('Tag '+byName.id);
+        changed=true;
+      }
+    }
+    // offensichtliche Altlast: Tag T -> versuchen zu mappen
+    if(String(w.day).toUpperCase()==='T'){
+      const byName = days.find(d=>String(d.focus||'')===String(w.dayName||''));
+      if(byName){ w.day = byName.id; w.dayLabel = byName.day || ('Tag '+byName.id); changed=true; }
+    }
+  });
+  if(changed) setData('wkHistory', hist);
+}
 
 function migrateWeightHistoryIfNeeded(){
   const hist = getData('weightHistory', []);
@@ -1531,7 +1564,7 @@ function openWorkoutHistory(){
     list.innerHTML = history.slice(0,200).map(w=>`
       <div class="hist-card" style="margin-bottom:10px">
         <div class="hist-card-header">
-          <div><div class="hist-day-tag">TAG ${w.day}</div><div class="hist-name">${w.dayName||''}</div></div>
+          <div><div class="hist-day-tag">${(w.dayLabel || ('Tag '+w.day)).toUpperCase()}</div><div class="hist-name">${w.dayName||''}</div></div>
           <div class="hist-date">${new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}
             <div class="hist-time">${w.duration||'?'} Min.</div>
           </div>
@@ -2134,7 +2167,19 @@ function startWorkout(day){
     let setsHtml='';
     for(let s=0;s<ex.sets;s++){
       const lastSet=lastWk? (lastWk.sets||[]).find(ls=>ls.exIdx===idx && ls.setIdx===s) : null;
-      const baseKg = lastSet ? parseFloat(lastSet.kg) : (probeKg!=null ? parseFloat(probeKg) : (info.beginnerKg?parseFloat(String(info.beginnerKg).split('–')[0]):''));
+      let baseKg = '';
+      if(lastSet){
+        const lk = parseFloat(String(lastSet.kg).replace(',', '.'));
+        if(isFinite(lk)) baseKg = lk;
+      }
+      if(baseKg==='' && probeKg!=null){
+        const pk = parseFloat(String(probeKg).replace(',', '.'));
+        if(isFinite(pk)) baseKg = pk;
+      }
+      if(baseKg==='' && info.beginnerKg){
+        const bk = parseFloat(String(info.beginnerKg).split('–')[0].replace(',', '.'));
+        if(isFinite(bk)) baseKg = bk;
+      }
       const kgVal = (baseKg!=='' && !isNaN(baseKg)) ? String(baseKg) : '';
       const repVal = lastSet ? String(lastSet.reps) : repsDefaultFromRange(ex.reps);
 
@@ -2220,7 +2265,7 @@ function toggleSet(exIdx,setIdx,rest){
     if(!wkData[exIdx])wkData[exIdx]={};
     wkData[exIdx][setIdx]={kg:kgEl.value||kgEl.placeholder,reps:repEl.value||repEl.placeholder};
     kgEl.disabled=true;repEl.disabled=true;
-    startTimer(rest);
+    startTimer(60);
   }else{
     btn.classList.remove('done');row.classList.remove('completed');
     kgEl.disabled=false;repEl.disabled=false;
@@ -2279,7 +2324,7 @@ function completeWorkout(){
   });
   const duration=Math.round((Date.now()-wkStart)/60000);
   const vol=sets.reduce((a,s)=>a+(parseFloat(s.kg)||0)*(parseInt(s.reps)||0),0);
-  const entry={id:Date.now(),day:activeDay,dayName:plan.focus,date:today(),timestamp:Date.now(),duration,sets,totalVolume:vol};
+  const entry={id:Date.now(),day:activeDay,dayLabel:(plan.day || ('Tag '+activeDay)),dayName:plan.focus,date:today(),timestamp:Date.now(),duration,sets,totalVolume:vol};
   const h=getData('wkHistory',[]);h.push(entry);setData('wkHistory',h);
 
   // Advance rotation to next day
@@ -2468,7 +2513,7 @@ function renderHistory(){
   list.innerHTML=history.slice(0,10).map(w=>`
     <div class="hist-card">
       <div class="hist-card-header">
-        <div><div class="hist-day-tag">TAG ${w.day}</div><div class="hist-name">${w.dayName}</div></div>
+        <div><div class="hist-day-tag">${(w.dayLabel || ('Tag '+w.day)).toUpperCase()}</div><div class="hist-name">${w.dayName}</div></div>
         <div class="hist-date">${new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}<div class="hist-time">${w.duration||'?'} Min.</div></div>
       </div>
       <div class="hist-stats">
