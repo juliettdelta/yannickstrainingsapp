@@ -420,9 +420,27 @@ body[data-view="intro"] #bottom-nav{display:none}
 .more-ico{font-size:18px;line-height:1}
 .more-txt{font-size:13px;font-weight:700;color:var(--text)}
 
+
+
+/* SYSTEM BANNER (Storage Hinweise) */
+.sys-banner{position:sticky;top:0;z-index:500;padding:10px 14px;margin:0;background:rgba(255,170,64,0.12);border-bottom:1px solid rgba(255,170,64,0.35);color:var(--text);font-size:12px;line-height:1.4;display:none}
+.sys-banner strong{color:var(--orange)}
+
+/* TOAST */
+.toast{position:fixed;left:50%;bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 14px);transform:translateX(-50%);background:rgba(0,0,0,0.78);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:999px;font-size:12px;max-width:90vw;display:none;z-index:600;backdrop-filter:blur(10px)}
+.toast.show{display:block; animation:toastIn .18s ease-out;}
+@keyframes toastIn{from{transform:translateX(-50%) translateY(6px); opacity:0}to{transform:translateX(-50%) translateY(0); opacity:1}}
+
+/* BUILD BADGE */
+.build-badge{position:fixed;left:10px;bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 10px);z-index:610;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:999px;padding:5px 8px}
+
 </style>
 </head>
 <body data-view="intro">
+<div id="sys-banner" class="sys-banner"></div>
+<div id="toast" class="toast"></div>
+<div class="build-badge" id="build-badge">v13</div>
+
 
 <!-- INTRO -->
 <div id="view-intro" class="view active">
@@ -462,7 +480,7 @@ body[data-view="intro"] #bottom-nav{display:none}
         </div>
         <div class="home-hero-actions">
           <button class="btn-primary" id="btn-start-workout" onclick="startNextWorkout()">Training starten</button>
-          <button class="btn-outline" id="btn-skip-workout" onclick="skipNextWorkout()" style="display:none">Überspringen →</button>
+          <button class="btn-outline" id="btn-skip-workout" onclick="window.skipNextWorkout()" style="display:none">Überspringen →</button>
         </div>
         <div class="home-hero-hint" id="home-hero-hint"></div>
       </div>
@@ -543,7 +561,7 @@ body[data-view="intro"] #bottom-nav{display:none}
         </div>
         <div class="training-hero-actions">
           <button class="btn-primary" id="btn-training-start" onclick="startNextWorkout()">Training starten</button>
-          <button class="btn-outline" id="btn-training-skip" onclick="skipNextWorkout()" style="display:none">Überspringen →</button>
+          <button class="btn-outline" id="btn-training-skip" onclick="window.skipNextWorkout()" style="display:none">Überspringen →</button>
         </div>
         <div class="training-hero-hint" id="training-hero-hint"></div>
       </div>
@@ -558,6 +576,11 @@ body[data-view="intro"] #bottom-nav{display:none}
         <button class="btn-outline" style="padding:10px 14px" onclick="showActivePlanDetails()">Ansehen</button>
       </div>
     </div>
+
+    
+
+    <div class="section-label" style="margin-top:18px">Trainingstage</div>
+    <div class="day-cards" id="training-day-cards"></div>
 
     <div style="padding:14px 20px 0">
       <details class="plan-accordion" id="training-plan-history">
@@ -577,11 +600,7 @@ body[data-view="intro"] #bottom-nav{display:none}
         <div class="pa-body" id="training-plan-history-list"></div>
       </details>
     </div>
-
-    <div class="section-label" style="margin-top:18px">Trainingstage</div>
-    <div class="day-cards" id="training-day-cards"></div>
-
-    <div style="padding:14px 20px 0">
+<div style="padding:14px 20px 0">
       <details class="setup-accordion" id="training-setup">
         <summary>
           <div class="pa-left">
@@ -691,12 +710,10 @@ body[data-view="intro"] #bottom-nav{display:none}
     <div id="progress-content"></div>
 
     <div class="section-label" style="margin-top:18px">Logbuch</div>
-    <button class="btn-outline" onclick="openWorkoutHistory()" style="white-space:nowrap">Alle anzeigen</button>
-      </div>
-    </div>
     <div id="hist-list" style="padding:10px 20px;display:flex;flex-direction:column;gap:10px;"></div>
   </div>
 </div>
+
 
 <!-- PROBETRAINING --><!-- PROBETRAINING -->
 <div id="view-probe" class="view">
@@ -1065,6 +1082,36 @@ let wizStep=0, wizGoal=null, wizDays=null, wizTime=null, wizLevel=null;
 let progressChart=null, selectedEx=null;
 let currentView='intro', probeReturnView='home';
 
+
+// ============================================================
+// UX HELPERS (Toast + Storage Check)
+// ============================================================
+function showToast(msg, ms=1800){
+  const t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._hide);
+  t._hide=setTimeout(()=>t.classList.remove('show'), ms);
+}
+function canWriteStorage(){
+  try{
+    const k='__tp_test__';
+    localStorage.setItem(k,'1');
+    localStorage.removeItem(k);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+function setBanner(htmlText){
+  const b=document.getElementById('sys-banner');
+  if(!b) return;
+  if(!htmlText){ b.style.display='none'; b.innerHTML=''; return; }
+  b.innerHTML=htmlText;
+  b.style.display='block';
+}
+
 // ============================================================
 // FIREBASE SETUP  (lazy – only runs when called, never at parse time)
 // ============================================================
@@ -1148,6 +1195,14 @@ window.__startAppImpl = async function(){
   if(btn){ btn.textContent='Laden...'; btn.disabled=true; }
 
   showView('home');
+  // Storage-Hinweis (Handy)
+  const storageOk = canWriteStorage();
+  if(!storageOk){
+    setBanner('<strong>Hinweis:</strong> Speichern ist in diesem Browser deaktiviert. Bitte Safari/Browser <strong>ohne Privatmodus</strong> nutzen, sonst gehen Daten verloren.');
+  } else {
+    setBanner('');
+  }
+
 
   const isFile = (location && location.protocol === 'file:');
   if(isFile){
@@ -1660,8 +1715,8 @@ function normalizeCustomPlan(p){
     planName: p.planName || 'Dein Plan',
     note: p.note || '',
     days: p.days.map((d,i)=>{
-      const mm = (d.day||'').match(/([A-Z])/);
-      const id = d.id || (mm?mm[1]:String(i+1));
+      const mm = (d.day||'').match(/Tag\s*([A-Z])/i);
+      const id = d.id || (mm ? String(mm[1]).toUpperCase() : String(i+1));
       return {
         id,
         day: d.day || ('Tag ' + id),
@@ -1912,7 +1967,7 @@ function renderTraining(){
       btnStart.textContent = 'Training starten';
       btnStart.onclick = () => startNextWorkout();
     }
-    if(btnSkip) btnSkip.style.display='inline-flex';
+    if(btnSkip){ const cnt=getPlanDayOrder().length; btnSkip.style.display = (cnt>1 ? 'inline-flex' : 'none'); }
   }else{
     if(hTitle) hTitle.textContent = 'Training';
     if(hSub) hSub.textContent = 'Wähle einen Tag aus deinem Plan.';
@@ -1994,7 +2049,7 @@ function renderHome(){
         btnStart.textContent = 'Training starten';
         btnStart.onclick = () => startNextWorkout();
       }
-      if(btnSkip) btnSkip.style.display = 'inline-flex';
+      if(btnSkip){ const cnt=getPlanDayOrder().length; btnSkip.style.display = (cnt>1 ? 'inline-flex' : 'none'); if(cnt<=1 && hHint && !hHint.textContent){ hHint.textContent='Nur ein Trainingstag im Plan – nichts zu überspringen.'; } }
     }else{
       if(hTitle) hTitle.textContent = 'Training';
       if(hSub)   hSub.textContent   = '—';
@@ -2241,8 +2296,24 @@ function completeWorkout(){
   document.getElementById('done-screen').classList.add('show');
 }
 
-function finishWorkout(){showView('home');}
-function confirmBack(){if(confirm('Training abbrechen?'))showView('home');}
+function finishWorkout(){showView('home');
+  // Storage-Hinweis (Handy)
+  const storageOk = canWriteStorage();
+  if(!storageOk){
+    setBanner('<strong>Hinweis:</strong> Speichern ist in diesem Browser deaktiviert. Bitte Safari/Browser <strong>ohne Privatmodus</strong> nutzen, sonst gehen Daten verloren.');
+  } else {
+    setBanner('');
+  }
+}
+function confirmBack(){if(confirm('Training abbrechen?'))showView('home');
+  // Storage-Hinweis (Handy)
+  const storageOk = canWriteStorage();
+  if(!storageOk){
+    setBanner('<strong>Hinweis:</strong> Speichern ist in diesem Browser deaktiviert. Bitte Safari/Browser <strong>ohne Privatmodus</strong> nutzen, sonst gehen Daten verloren.');
+  } else {
+    setBanner('');
+  }
+}
 
 // ============================================================
 // TIMER
@@ -2670,7 +2741,7 @@ function saveProbeWeights(){
   if(!weights){ alert('Keine Gewichte zum Speichern gefunden.'); return; }
   setData('probeWeights', weights);
   setData('probeLastDone', today());
-  alert('Gewichte gespeichert! Sie werden im Training vorausgefüllt.');
+  showToast('Gewichte gespeichert ✓');
   showView('training');
 }
 
@@ -2704,7 +2775,7 @@ function applyPlanFromHistory(id){
   const plan=hist.find(p=>String(p.id)===String(id));
   if(!plan){ alert('Plan nicht gefunden.'); return; }
   setData('customPlan', plan);
-  alert('Plan aktiviert ✓');
+  showToast('Plan aktiviert ✓');
   if(typeof recalculateNextDayId==='function') recalculateNextDayId();
   showView('training');
 }
@@ -3012,6 +3083,7 @@ function renderPlanResult(plan){
   `;
 }
 
+window.skipNextWorkout = skipNextWorkout;
 // Exports
 </script>
 </body>
