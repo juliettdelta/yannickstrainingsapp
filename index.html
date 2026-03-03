@@ -436,12 +436,32 @@ body[data-view="probe"] #bottom-nav{display:none}
 /* BUILD BADGE */
 .build-badge{position:fixed;left:10px;bottom:calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 10px);z-index:610;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:999px;padding:5px 8px}
 
+/* TIMER COACH HINT */
+.timer-hint{margin-top:14px;max-width:360px;text-align:center;font-size:13px;color:var(--text-mid);line-height:1.45;padding:0 18px}
+.timer-hint strong{color:var(--accent)}
+
+/* TIMER APPLY */
+.timer-apply{background:rgba(200,245,58,0.14);border:1px solid rgba(200,245,58,0.35);color:var(--accent);padding:10px 20px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
+.timer-apply:active{transform:scale(0.98)}
+
+
+
+/* VISUAL FEEDBACK: flash green on input */
+.flash-green{animation:flashGreen .35s ease-out; box-shadow:0 0 0 3px rgba(77,255,145,0.22); border-color:rgba(77,255,145,0.65)!important;}
+@keyframes flashGreen{from{background:rgba(77,255,145,0.10);}to{background:var(--bg);}}
+
+
+
+/* Home Hint Link */
+.hint-link{color:var(--accent);text-decoration:none;font-weight:800}
+.hint-link:active{text-decoration:underline}
+
 </style>
 </head>
 <body data-view="intro">
 <div id="sys-banner" class="sys-banner"></div>
 <div id="toast" class="toast"></div>
-<div class="build-badge" id="build-badge">v14</div>
+<div class="build-badge" id="build-badge">v23</div>
 
 
 <!-- INTRO -->
@@ -495,8 +515,7 @@ body[data-view="probe"] #bottom-nav{display:none}
           <div style="font-size:12px;color:var(--text-muted)" id="weight-sub">Letzter Eintrag</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent)" id="weight-val">—</div>
           <div style="font-size:12px;color:var(--text-mid);margin-top:2px" id="weight-delta">—</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:8px" id="weight-impact">Beeinflusst empfohlene Trainingsgewichte (60%).</div>
-          <div class="weight-last5" id="weight-last5"></div>
+<div class="weight-last5" id="weight-last5"></div>
           <div style="font-size:12px;color:var(--orange);margin-top:8px;display:none" id="weight-reminder">Noch kein Gewicht eingetragen.</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;min-width:140px">
@@ -667,8 +686,10 @@ body[data-view="probe"] #bottom-nav{display:none}
     </svg>
     <div class="timer-num" id="timer-num">60</div>
   </div>
+  <div class="timer-hint" id="timer-hint"></div>
   <div class="timer-btns">
     <button class="timer-add" onclick="addTimer()">+30 Sek.</button>
+  <button class="timer-apply" id="timer-apply" onclick="applyCoachSuggestion()" style="display:none">Übernehmen</button>
     <button class="timer-skip" onclick="skipTimer()">Überspringen →</button>
   </div>
 </div>
@@ -1097,14 +1118,8 @@ function showToast(msg, ms=1800){
   t._hide=setTimeout(()=>t.classList.remove('show'), ms);
 }
 function canWriteStorage(){
-  try{
-    const k='__tp_test__';
-    localStorage.setItem(k,'1');
-    localStorage.removeItem(k);
-    return true;
-  }catch(e){
-    return false;
-  }
+  try{ const k='__tp_test__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; }
+  catch(e){ return false; }
 }
 function setBanner(htmlText){
   const b=document.getElementById('sys-banner');
@@ -1112,6 +1127,38 @@ function setBanner(htmlText){
   if(!htmlText){ b.style.display='none'; b.innerHTML=''; return; }
   b.innerHTML=htmlText;
   b.style.display='block';
+}
+
+// ============================================================
+// COACH HELPERS (Live Hinweis im Timer + Quick Apply)
+// ============================================================
+window.__coachSuggestion = null;
+function setTimerHint(txt){
+  const el=document.getElementById('timer-hint');
+  if(!el) return;
+  el.innerHTML = txt || '';
+}
+function setTimerApply(enabled){
+  const b=document.getElementById('timer-apply');
+  if(!b) return;
+  b.style.display = enabled ? 'inline-flex' : 'none';
+}
+function applyCoachSuggestion(){
+  const s = window.__coachSuggestion;
+  if(!s) return;
+  const f = document.getElementById(`kg-${s.exIdx}-${s.nextSetIdx}`);
+  if(!f){ showToast('Kein nächstes Set.'); return; }
+  if(f.disabled){ showToast('Nächstes Set ist schon erledigt.'); return; }
+  f.value = String(s.kg);
+  f.placeholder = String(s.kg);
+  // Visual feedback
+  f.classList.remove('flash-green');
+  void f.offsetWidth; // restart animation
+  f.classList.add('flash-green');
+  clearTimeout(f._flashT);
+  f._flashT = setTimeout(()=>f.classList.remove('flash-green'), 500);
+  try{ f.focus({preventScroll:true}); }catch(_){ try{ f.focus(); }catch(__){} }
+  showToast(`Nächstes Set: ${Number(s.kg).toLocaleString('de-DE')} kg ✓`);
 }
 
 // ============================================================
@@ -1265,18 +1312,12 @@ function migrateWkHistoryDayLabelsIfNeeded(){
   let changed=false;
   hist.forEach(w=>{
     if(!w) return;
-    // dayLabel ergänzen
     if(!w.dayLabel){
       const byId = days.find(d=>String(d.id)===String(w.day));
       if(byId){ w.dayLabel = byId.day || ('Tag '+byId.id); changed=true; return; }
       const byName = days.find(d=>String(d.focus||'')===String(w.dayName||''));
-      if(byName){
-        w.day = byName.id;
-        w.dayLabel = byName.day || ('Tag '+byName.id);
-        changed=true;
-      }
+      if(byName){ w.day = byName.id; w.dayLabel = byName.day || ('Tag '+byName.id); changed=true; }
     }
-    // offensichtliche Altlast: Tag T -> versuchen zu mappen
     if(String(w.day).toUpperCase()==='T'){
       const byName = days.find(d=>String(d.focus||'')===String(w.dayName||''));
       if(byName){ w.day = byName.id; w.dayLabel = byName.day || ('Tag '+byName.id); changed=true; }
@@ -1308,6 +1349,13 @@ function getWeightHistory(){
   const hist = getData('weightHistory', []);
   return Array.isArray(hist) ? hist : [];
 }
+
+function getCurrentBodyweightKg(){
+  const hist = getWeightHistory();
+  const last = (Array.isArray(hist) ? hist : []).find(e=>e && isFinite(e.kg));
+  return last ? Number(last.kg) : null;
+}
+
 
 function addWeightEntry(kg){
   const hist = getWeightHistory().slice();
@@ -1465,7 +1513,7 @@ function renderWeeklyWeightCard(){
   const subEl=document.getElementById('weight-sub');
   const remEl=document.getElementById('weight-reminder');
   const btnEl=document.getElementById('btn-weight');
-  const impactEl=document.getElementById('weight-impact');
+  const impactEl=null;
   const last5El=document.getElementById('weight-last5');
 
   if(!valEl || !deltaEl || !subEl || !remEl || !btnEl) return;
@@ -1477,7 +1525,7 @@ function renderWeeklyWeightCard(){
     subEl.textContent = 'Letzter Eintrag';
     valEl.textContent = '—';
     deltaEl.textContent = '—';
-    if(impactEl) impactEl.textContent = 'Beeinflusst empfohlene Trainingsgewichte (60%).';
+    
     remEl.style.display='block';
     btnEl.textContent='Eintragen';
     if(last5El) last5El.innerHTML='';
@@ -1500,13 +1548,7 @@ function renderWeeklyWeightCard(){
   }else{
     deltaEl.textContent = '—';
   }
-
-  if(impactEl){
-    const bw60 = Math.round((cur.kg*0.6)*2)/2;
-    impactEl.textContent = 'Beeinflusst empfohlene Trainingsgewichte (60% = ' + bw60.toLocaleString('de-DE') + ' kg).';
-  }
-
-  const last5 = data.slice(0,5);
+const last5 = data.slice(0,5);
   if(last5El){
     last5El.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-top:10px;letter-spacing:1px;text-transform:uppercase">Letzte 5 Einträge</div>' + last5.map((e,i)=>{
       const next = last5[i+1];
@@ -1801,6 +1843,179 @@ function repsDefaultFromRange(r){
   return String(Math.round((parseInt(m[1],10)+parseInt(m[2],10))/2));
 }
 
+function parseRepsRange(rangeStr){
+  const s = String(rangeStr||'').trim();
+  const m = s.match(/(\d+)\s*[–\-]\s*(\d+)/);
+  if(m) return {min: parseInt(m[1],10), max: parseInt(m[2],10)};
+  const n = parseInt(s,10);
+  if(isFinite(n)) return {min:n, max:n};
+  return {min:8, max:12};
+}
+
+function computeNextSetAdvice(targetRangeStr, doneReps, currentKg, isLastSet){
+  const rr = parseRepsRange(targetRangeStr);
+  const reps = parseInt(doneReps,10);
+  const kg = parseFloat(String(currentKg).replace(',', '.'));
+  if(!isFinite(reps) || reps<=0 || !isFinite(kg) || kg<=0) return null;
+
+  if(isLastSet){
+    return {delta:0, nextKg:null, canApply:false,
+      msg:`Übung erledigt ✓ <span style="color:var(--text-muted)">(${reps} Wdh.)</span>`};
+  }
+
+  // Regeln
+  if(reps < rr.min){
+    const nk = roundTo25(kg-2.5);
+    return {delta:-2.5, nextKg:nk, canApply:true,
+      msg:`Zu schwer: <strong>${reps} Wdh.</strong> (Ziel ${rr.min}–${rr.max}). Nächstes Set: <strong>${nk.toLocaleString('de-DE')} kg</strong>.`};
+  }
+  if(reps >= rr.max+2){
+    const nk = roundTo25(kg+2.5);
+    return {delta:2.5, nextKg:nk, canApply:true,
+      msg:`Sehr gut: <strong>${reps} Wdh.</strong> (Ziel ${rr.min}–${rr.max}). Nächstes Set: <strong>${nk.toLocaleString('de-DE')} kg</strong> (wenn Technik sauber bleibt).`};
+  }
+
+  // Nur bei Bedarf: bei delta=0 kurz halten
+  return {delta:0, nextKg:roundTo25(kg), canApply:false,
+    msg:`Weiter so. <span style="color:var(--text-muted)">Ziel ${rr.min}–${rr.max} Wdh.</span>`};
+}
+
+// ============================================================
+// DELOAD (Mini-Deload) – Vorschlag + Aktivierung
+// ============================================================
+function getDeloadNext(){ return getData('deloadNext', null); }
+function clearDeloadNext(){ setData('deloadNext', null); }
+function activateDeload(dayId, factor=0.9){
+  setData('deloadNext', { dayId: String(dayId), factor: Number(factor)||0.9, createdAt: Date.now() });
+  showToast('Deload aktiviert (−10%)');
+  renderHome();
+  renderTraining();
+}
+function computeDeloadSuggestionForDay(dayId){
+  const plan = getActivePlan();
+  const day = (plan.days||[]).find(d=>String(d.id)===String(dayId));
+  if(!day) return null;
+
+  const histAll = (getData('wkHistory', [])||[])
+    .filter(w=>w && String(w.day)===String(dayId))
+    .sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  if(histAll.length < 2) return null;
+
+  const last = histAll[0];
+  const prev = histAll[1];
+
+  const targetMinByName = {};
+  (day.exercises||[]).forEach(ex=>{ targetMinByName[ex.name] = parseRepsRange(ex.reps).min; });
+
+  function score(workout){
+    const sets = (workout.sets||[]).filter(s=>s && targetMinByName[s.exName]!=null);
+    if(!sets.length) return {under:0,total:0,rate:0};
+    let under=0;
+    sets.forEach(s=>{
+      const r = parseInt(s.reps,10);
+      const min = targetMinByName[s.exName];
+      if(isFinite(r) && r < min) under++;
+    });
+    return {under,total:sets.length,rate: under/sets.length};
+  }
+
+  const s0 = score(last);
+  const s1 = score(prev);
+
+  const hard = (s)=> (s.total>=4 && s.rate>=0.35) || (s.under>=3);
+  const hardNow = hard(s0);
+  const hardPrev = hard(s1);
+
+  const v0 = Number(last.totalVolume||0);
+  const v1 = Number(prev.totalVolume||0);
+  const volDown = (v1>0 && v0>0 && v0 < v1*0.90);
+
+  if((hardNow && hardPrev) || (hardNow && volDown)){
+    const reason = `Letzte Einheit hart: ${s0.under}/${s0.total||'?'} Sätze unter Ziel. Empfehlung: −10% für diese Einheit.`;
+    return { dayId: String(dayId), factor: 0.9, reason };
+  }
+  return null;
+}
+function applyDeloadToWorkout(factor){
+  const f = Number(factor);
+  if(!isFinite(f) || f<=0 || f>=1) return;
+  const fields = document.querySelectorAll('[id^="kg-"]');
+  let changed=0;
+  fields.forEach(inp=>{
+    if(!inp || inp.disabled) return;
+    const raw = inp.value || inp.placeholder;
+    const val = parseFloat(String(raw).replace(',', '.'));
+    if(!isFinite(val) || val<=0) return;
+    const nv = roundTo25(val*f);
+    if(nv==null) return;
+    inp.value = String(nv);
+    inp.placeholder = String(nv);
+    changed++;
+  });
+  if(changed) showToast('Deload angewendet (−10%)');
+}
+
+
+function roundTo25(x){
+  const n = Number(x);
+  if(!isFinite(n)) return null;
+  return Math.round(n/2.5)*2.5;
+}
+function getLastWorkoutForExercise(exName){
+  const hist = (getData('wkHistory', [])||[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+  for(const w of hist){
+    const sets = (w && w.sets) ? w.sets.filter(s=>s && s.exName===exName) : [];
+    if(sets.length) return {workout:w, sets};
+  }
+  return null;
+}
+function getExerciseRecommendation(exName, targetRangeStr){
+  const rr = parseRepsRange(targetRangeStr);
+  const last = getLastWorkoutForExercise(exName);
+  if(!last) return null;
+  const w = last.workout;
+  const sets = last.sets;
+  const reps = sets.map(s=>parseInt(s.reps,10)).filter(x=>isFinite(x) && x>0);
+  const kgs  = sets.map(s=>parseFloat(String(s.kg).replace(',', '.'))).filter(x=>isFinite(x) && x>0);
+  if(!reps.length || !kgs.length) return null;
+
+  const freq = new Map();
+  kgs.forEach(v=>freq.set(v,(freq.get(v)||0)+1));
+  let base = kgs[0];
+  let bestCount=0;
+  for(const [k,c] of freq.entries()){
+    if(c>bestCount){ bestCount=c; base=k; }
+  }
+  if(bestCount===1) base = Math.max(...kgs);
+  base = roundTo25(base);
+  if(base==null) return null;
+
+  const minR = Math.min(...reps);
+  const maxR = Math.max(...reps);
+  let delta = 0;
+  if(reps.every(r=>r>=rr.max)) delta = 2.5;
+  else if(reps.some(r=>r<rr.min)) delta = -2.5;
+  const rec = roundTo25(base + delta);
+  if(rec==null) return null;
+
+  const dt = (w && w.date) ? w.date : '';
+  const dateTxt = dt ? ('Letztes Mal: ' + new Date(dt).toLocaleDateString('de-DE')) : 'Letztes Mal';
+  const reason = `${dateTxt} · ${sets.length} Sätze · ${minR}-${maxR} Wdh. @ ${base.toLocaleString('de-DE')} kg`;
+  return {kg: rec, baseKg: base, delta, reason};
+}
+function applyRecommendation(exIdx, kg){
+  const v = Number(kg);
+  if(!isFinite(v)) return;
+  const fields = document.querySelectorAll(`[id^="kg-${exIdx}-"]`);
+  fields.forEach(f=>{
+    if(f.disabled) return;
+    f.value = String(v);
+    f.placeholder = String(v);
+  });
+  showToast('Empfehlung übernommen ✓');
+}
+
+
 function adjustExerciseKg(exIdx, delta){
   const fields = document.querySelectorAll(`[id^="kg-${exIdx}-"]`);
   fields.forEach(f=>{
@@ -1995,7 +2210,7 @@ function renderTraining(){
     if(hSub) hSub.textContent = dayLabel;
     const lastTxt = sug.last ? ('Zuletzt: ' + new Date(sug.last).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})) : 'Noch nie gemacht';
     if(hMeta) hMeta.textContent = lastTxt;
-    if(hHint) hHint.textContent = hasProbe ? '' : 'Tipp: Mach den Einstiegstest für bessere Gewichtsvorschläge.';
+    if(hHint) hHint.innerHTML = hasProbe ? '' : 'Tipp: Mach den <a class="hint-link" href="#" onclick="event.preventDefault();showView(\'probe\')">Einstiegstest</a> für bessere Gewichtsvorschläge.';
     if(btnStart){
       btnStart.textContent = 'Training starten';
       btnStart.onclick = () => startNextWorkout();
@@ -2039,6 +2254,36 @@ function renderTraining(){
   });
 
   renderTrainingPlanHistory();
+
+  // Deload-Vorschlag (nur für die nächste Einheit)
+  try{
+    if(hasPlan){
+      const sug = getNextWorkoutSuggestion();
+      const btnD = document.getElementById('btn-training-deload');
+      if(sug && sug.type==='workout'){
+        const ds = computeDeloadSuggestionForDay(sug.day.id);
+        const active = getDeloadNext();
+        if(btnD){
+          if(ds && !(active && String(active.dayId)===String(sug.day.id))){
+            btnD.style.display = 'inline-flex';
+            btnD.textContent = 'Deload −10%';
+            btnD.onclick = ()=>activateDeload(ds.dayId, ds.factor);
+          }else{
+            btnD.style.display = 'none';
+            btnD.onclick = null;
+          }
+        }
+        if(ds && hHint){
+          const base = hHint.textContent ? (hHint.textContent + ' ') : '';
+          hHint.textContent = base + 'Deload empfohlen (−10%).';
+        }
+      } else {
+        if(btnD){ btnD.style.display='none'; btnD.onclick=null; }
+      }
+    }
+  }catch(_){ }
+
+
 }
 
 // ============================================================
@@ -2122,6 +2367,37 @@ function renderHome(){
   if(statusLast) statusLast.textContent = last ? (new Date(last.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' · ' + (last.dayName || 'Training')) : '—';
 
   renderWeeklyWeightCard();
+
+  // Deload-Vorschlag (nur für die nächste Einheit)
+  try{
+    if(hasPlan){
+      const sug = getNextWorkoutSuggestion();
+      const btnD = document.getElementById('btn-home-deload');
+      if(sug && sug.type==='workout'){
+        const ds = computeDeloadSuggestionForDay(sug.day.id);
+        const active = getDeloadNext();
+        if(btnD){
+          if(ds && !(active && String(active.dayId)===String(sug.day.id))){
+            btnD.style.display = 'inline-flex';
+            btnD.textContent = 'Deload −10%';
+            btnD.onclick = ()=>activateDeload(ds.dayId, ds.factor);
+          }else{
+            btnD.style.display = 'none';
+            btnD.onclick = null;
+          }
+        }
+        if(ds && hHint){
+          // Kombinieren mit evtl. Probe-Hinweis
+          const base = hHint.textContent ? (hHint.textContent + ' ') : '';
+          hHint.textContent = base + 'Deload empfohlen (−10%).';
+        }
+      } else {
+        if(btnD){ btnD.style.display='none'; btnD.onclick=null; }
+      }
+    }
+  }catch(_){ }
+
+
 }
 
 
@@ -2176,7 +2452,18 @@ function startWorkout(day){
         const pk = parseFloat(String(probeKg).replace(',', '.'));
         if(isFinite(pk)) baseKg = pk;
       }
-      if(baseKg==='' && info.beginnerKg){
+      
+      // Körpergewicht-Übungen: aktuelles Körpergewicht als Vorschlag
+      if(baseKg===''){
+        const bw = getCurrentBodyweightKg();
+        const bg = String(info.beginnerKg||'');
+        const sw = String(info.startWeight||'');
+        const isBW = /Körpergewicht/i.test(bg) || /Eigenkörpergewicht/i.test(sw) || /Bodyweight/i.test(sw);
+        if(isBW && bw!=null && isFinite(bw) && bw>0){
+          baseKg = bw;
+        }
+      }
+if(baseKg==='' && info.beginnerKg){
         const bk = parseFloat(String(info.beginnerKg).split('–')[0].replace(',', '.'));
         if(isFinite(bk)) baseKg = bk;
       }
@@ -2200,6 +2487,34 @@ function startWorkout(day){
     }
 
     const sourceLine = probeKg!=null ? `🎯 Einstiegstest: <strong style="color:var(--accent)">${probeKg} kg</strong>` : '';
+    const recFromHistory = getExerciseRecommendation(ex.name, ex.reps);
+    let rec = recFromHistory;
+    if(!rec){
+      let startKg = null;
+      if(probeKg!=null){
+        const pk = parseFloat(String(probeKg).replace(',', '.'));
+        if(isFinite(pk) && pk>0) startKg = pk;
+      }
+      if(startKg==null && info.beginnerKg){
+        const bk = parseFloat(String(info.beginnerKg).split('–')[0].replace(',', '.'));
+        if(isFinite(bk) && bk>0) startKg = bk;
+      }
+      if(startKg!=null){
+        startKg = roundTo25(startKg);
+        rec = {kg:startKg, baseKg:startKg, delta:0,
+               reason:(probeKg!=null ? ('Startwert aus Einstiegstest: ' + String(probeKg).replace('.', ',') + ' kg')
+                                     : ('Startwert (Einsteiger): ' + String(info.beginnerKg)))};
+      }
+    }
+    const recHtml = rec ? `
+      <div class=\"pr-badge\" style=\"display:flex;align-items:center;justify-content:space-between;gap:10px; margin:-6px 0 14px\">
+        <div style=\"font-size:12px;color:var(--text-mid);line-height:1.35\">
+          🤖 Empfehlung heute: <strong style=\"color:var(--accent)\">${Number(rec.kg).toLocaleString('de-DE')} kg</strong><br>
+          <span style=\"color:var(--text-muted)\">${rec.reason}</span>
+        </div>
+        <button class=\"btn-outline\" style=\"padding:8px 10px;white-space:nowrap\" onclick=\"event.stopPropagation();applyRecommendation(${idx}, ${Number(rec.kg)});\">Übernehmen</button>
+      </div>
+    ` : '';
 
     block.innerHTML=`
       <div class="ex-meta">Übung ${idx+1} von ${(planDay.exercises||[]).length} · ${ex.sets} Sätze à ${ex.reps} Wdh.</div>
@@ -2216,7 +2531,10 @@ function startWorkout(day){
         </div>
       </div>
 
-      <button class="ex-info-toggle" onclick="toggleInfo(${idx})" id="info-toggle-${idx}">
+      ${recHtml}
+
+
+      <button class=\"ex-info-toggle\" onclick="toggleInfo(${idx})" id="info-toggle-${idx}">
         <span>📖</span><span>Technik & Empfehlungen</span><span class="arrow">▼</span>
       </button>
       <div class="ex-info-panel" id="info-panel-${idx}">
@@ -2244,6 +2562,9 @@ function startWorkout(day){
   document.getElementById('ex-scroll').style.display='';
   document.getElementById('ex-nav').style.display='';
   updateWkNav();
+  // Deload anwenden, falls aktiviert
+  const dn = getDeloadNext();
+  if(dn && String(dn.dayId)===String(day)) applyDeloadToWorkout(dn.factor);
   showView('workout');
 }
 
@@ -2265,11 +2586,25 @@ function toggleSet(exIdx,setIdx,rest){
     if(!wkData[exIdx])wkData[exIdx]={};
     wkData[exIdx][setIdx]={kg:kgEl.value||kgEl.placeholder,reps:repEl.value||repEl.placeholder};
     kgEl.disabled=true;repEl.disabled=true;
+    const planAll=getActivePlan();
+    const planDay=(planAll.days||[]).find(d=>String(d.id)===String(activeDay)) || (planAll.days||[])[0] || {exercises:[]};
+    const exObj=(planDay.exercises||[])[exIdx] || {reps:'', sets:0};
+    const isLastSet = (Number(exObj.sets||0)-1)===setIdx;
+    const adv = computeNextSetAdvice(exObj.reps||'', wkData[exIdx][setIdx].reps, wkData[exIdx][setIdx].kg, isLastSet);
+    setTimerHint(adv ? adv.msg : '');
+    if(adv && adv.canApply && adv.nextKg!=null && !isLastSet){
+      window.__coachSuggestion = {exIdx: exIdx, nextSetIdx: setIdx+1, kg: adv.nextKg};
+      setTimerApply(true);
+    }else{
+      window.__coachSuggestion = null;
+      setTimerApply(false);
+    }
     startTimer(60);
   }else{
     btn.classList.remove('done');row.classList.remove('completed');
     kgEl.disabled=false;repEl.disabled=false;
     if(wkData[exIdx])delete wkData[exIdx][setIdx];
+    setTimerHint(''); setTimerApply(false); window.__coachSuggestion=null;
   }
 }
 
@@ -2339,6 +2674,9 @@ function completeWorkout(){
     <div class="done-stat"><div class="done-stat-n">${Math.round(vol)}</div><div class="done-stat-l">kg Vol.</div></div>
   `;
   document.getElementById('done-screen').classList.add('show');
+  // Deload nur einmal anwenden
+  const dn = getDeloadNext();
+  if(dn && String(dn.dayId)===String(activeDay)) clearDeloadNext();
 }
 
 function finishWorkout(){showView('home');
@@ -2380,7 +2718,7 @@ function updateTimerUI(){
   const pct=timerRem/timerTotal;
   document.getElementById('timer-arc').style.strokeDashoffset=CIRC*(1-pct);
 }
-function skipTimer(){clearInterval(timerInterval);document.getElementById('timer-overlay').classList.remove('show');}
+function skipTimer(){clearInterval(timerInterval);setTimerHint('');setTimerApply(false);window.__coachSuggestion=null;document.getElementById('timer-overlay').classList.remove('show');}
 function addTimer(){timerRem+=30;timerTotal=Math.max(timerTotal,timerRem);updateTimerUI();}
 
 
