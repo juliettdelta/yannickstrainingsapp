@@ -456,12 +456,36 @@ body[data-view="probe"] #bottom-nav{display:none}
 .hint-link{color:var(--accent);text-decoration:none;font-weight:800}
 .hint-link:active{text-decoration:underline}
 
+
+
+/* Stats: Muscle breakdown */
+.muscle-card{margin:0 20px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.muscle-row{display:flex;align-items:center;gap:10px;margin:10px 0}
+.muscle-name{width:120px;max-width:40vw;font-size:12px;color:var(--text-mid)}
+.muscle-barwrap{flex:1;height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.muscle-bar{height:100%;background:var(--accent)}
+.muscle-pct{width:44px;text-align:right;font-size:12px;color:var(--text)}
+
+
+
+/* HOME: Mini Stats Cards */
+.home-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px;margin-top:10px}
+@media (max-width:360px){.home-mini-grid{grid-template-columns:1fr}}
+.home-mini-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.home-mini-k{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted)}
+.home-mini-v{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);line-height:1;margin-top:8px}
+.home-mini-sub{font-size:12px;color:var(--text-mid);margin-top:8px;line-height:1.35}
+
+
+/* Overlay scroll fix */
+.overlay-card{min-height:100dvh;}
+.overlay-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 </style>
 </head>
 <body data-view="intro">
 <div id="sys-banner" class="sys-banner"></div>
 <div id="toast" class="toast"></div>
-<div class="build-badge" id="build-badge">v23</div>
+<div class="build-badge" id="build-badge">v32</div>
 
 
 <!-- INTRO -->
@@ -508,7 +532,21 @@ body[data-view="probe"] #bottom-nav{display:none}
       </div>
     </div>
 
-    <div class="section-label" style="margin-top:18px">Körpergewicht</div>
+    
+  <div class="home-mini-grid">
+    <div class="home-mini-card" id="home-mini-week">
+      <div class="home-mini-k">Diese Woche</div>
+      <div class="home-mini-v" id="home-mini-week-trainings">—</div>
+      <div class="home-mini-sub" id="home-mini-week-vol">—</div>
+    </div>
+    <div class="home-mini-card" id="home-mini-focus">
+      <div class="home-mini-k">Fokus (30 Tage)</div>
+      <div class="home-mini-v" id="home-mini-focus-main">—</div>
+      <div class="home-mini-sub" id="home-mini-focus-sub">—</div>
+    </div>
+  </div>
+
+<div class="section-label" style="margin-top:18px">Körpergewicht</div>
     <div style="padding:0 20px">
       <div class="card card-pad" id="weight-card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
         <div style="min-width:0">
@@ -728,11 +766,13 @@ body[data-view="probe"] #bottom-nav{display:none}
       </div>
     </div>
 
-    <div class="section-label" style="margin-top:18px">Übung</div>
+  <div class="section-label" style="margin-top:18px">Muskelgruppen</div>
+  <div id="muscle-breakdown"></div>
+
+
     <div class="ex-picker" id="ex-picker"></div>
     <div id="progress-content"></div>
-
-    <div class="section-label" style="margin-top:18px">Logbuch</div>
+<div class="section-label" style="margin-top:18px">Logbuch</div>
     <div id="hist-list" style="padding:10px 20px;display:flex;flex-direction:column;gap:10px;"></div>
   </div>
 </div>
@@ -880,6 +920,20 @@ body[data-view="probe"] #bottom-nav{display:none}
       <div class="overlay-actions"></div>
     </div>
     <div class="overlay-content" id="workout-history-content"></div>
+  </div>
+</div>
+
+
+<!-- DAY DETAILS OVERLAY -->
+<div class="overlay" id="day-detail-overlay" aria-hidden="true">
+  <div class="overlay-card">
+    <div class="overlay-header">
+      <button class="wk-back" onclick="closeDayDetails()">← Zurück</button>
+      <div class="overlay-actions">
+        <button class="btn-outline" id="day-detail-start-btn">Training starten</button>
+      </div>
+    </div>
+    <div class="overlay-content" id="day-detail-content"></div>
   </div>
 </div>
 
@@ -1055,6 +1109,15 @@ const EXERCISES = {
     rest: 60
   }
 };
+
+function getDosDontsForExercise(name){
+  const info = EXERCISES[name] || {};
+  if(info.dos || info.donts) return {dos: info.dos||'', donts: info.donts||''};
+  const dos = 'Kontrollierte Bewegung, voller Bewegungsweg, Rumpf stabil. Wenn du unsicher bist: lieber leichter und sauber.';
+  const donts = info.mistakes ? String(info.mistakes).trim() : 'Nicht mit Schwung arbeiten, nicht ins Hohlkreuz fallen, keine halben Wiederholungen.';
+  return {dos, donts};
+}
+
 
 const PLAN = {
   A: { name:'Brust & Trizeps', exercises:[
@@ -1641,7 +1704,8 @@ function showPlanDetails(id){
   if(!plan){ alert('Plan nicht gefunden.'); return; }
   renderPlanDetailsIntoOverlay(plan, {
     showActivate:true,
-    activateHandler:()=>{ applyPlanFromHistory(String(plan.id)); closePlanDetails(); }
+    activateHandler:()=>{ applyPlanFromHistory(String(plan.id)); closePlanDetails();
+    closeDayDetails(); }
   });
 }
 
@@ -1701,10 +1765,147 @@ function renderPlanDetailsIntoOverlay(plan, {showActivate=true, activateHandler=
   ov.style.display = 'flex';
   ov.classList.add('show');
   ov.setAttribute('aria-hidden','false');
-  ov.onclick = (e)=>{ if(e.target === ov) closePlanDetails(); };
+  ov.onclick = (e)=>{ if(e.target === ov) closePlanDetails();
+    closeDayDetails(); };
   content.scrollTop = 0;
 }
 
+
+
+function closeDayDetails(){
+  const ov = document.getElementById('day-detail-overlay');
+  if(!ov) return;
+  ov.classList.remove('show');
+  ov.style.display = 'none';
+  ov.setAttribute('aria-hidden','true');
+}
+
+function showDayDetails(dayId){
+  const plan = getActivePlan();
+  const day = (plan.days||[]).find(d=>String(d.id)===String(dayId));
+  if(!day){ showToast('Trainingstag nicht gefunden'); return; }
+
+  const ov = document.getElementById('day-detail-overlay');
+  const content = document.getElementById('day-detail-content');
+  const btn = document.getElementById('day-detail-start-btn');
+  if(!ov || !content || !btn) return;
+
+  const last = getLastDateForDay(day.id);
+  const lastTxt = last ? ('Zuletzt: ' + new Date(last).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})) : 'Noch nie gemacht';
+
+  const head = `
+    <div class="page-header" style="padding:24px 20px 10px">
+      <div class="page-title" style="font-size:34px">${(day.focus||'Training')}<span style="color:var(--accent)">.</span></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:6px">${(day.day||('Tag '+day.id)).toUpperCase()} · ${lastTxt}</div>
+    </div>
+  `;
+
+  const exHtml = (day.exercises||[]).map(ex=>{
+    const info = EXERCISES[ex.name] || {};
+    const rest = (ex.rest!=null ? ex.rest : (info.rest!=null ? info.rest : 60));
+ const dd = getDosDontsForExercise(ex.name);
+    return `
+      <div class="card card-pad" style="margin:0 20px 10px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.5px">${ex.name}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${ex.sets}×${ex.reps} · ${rest}s Pause</div>
+        <div style="font-size:12px;color:var(--text-mid);margin-top:10px;line-height:1.65">${info.description || ''}</div>
+        ${((dd.dos||dd.donts)?`<div style=\"margin-top:10px;display:flex;flex-direction:column;gap:8px\">${dd.dos?`<div class=\"ex-info-hint\" style=\"border-left-color:var(--green);background:rgba(77,255,145,0.06)\">✅ <strong>Do:</strong> ${dd.dos}</div>`:''}${dd.donts?`<div class=\"ex-info-hint\" style=\"border-left-color:var(--red);background:rgba(255,85,85,0.06)\">⛔ <strong>Don’t:</strong> ${dd.donts}</div>`:''}</div>`:'')}
+      </div>
+    `;
+  }).join('') || `<div class="empty-state" style="padding-top:10px"><div class="empty-text">Keine Übungen gefunden.</div></div>`;
+
+  content.innerHTML = head + exHtml + '<div style="height:80px"></div>';
+  btn.onclick = ()=>{ closeDayDetails(); startWorkout(day.id); };
+
+  ov.style.display = 'flex';
+  ov.classList.add('show');
+  ov.setAttribute('aria-hidden','false');
+  ov.onclick = (e)=>{ if(e.target === ov) closeDayDetails(); };
+  content.scrollTop = 0;
+}
+
+function muscleCategoryFromText(txt){
+  const t = String(txt||'').toLowerCase();
+  if(t.includes('brust') || t.includes('pector')) return 'Brust';
+  if(t.includes('rücken') || t.includes('lat') || t.includes('trapez')) return 'Rücken';
+  if(t.includes('bein') || t.includes('quad') || t.includes('oberschenkel') || t.includes('gesäß') || t.includes('glute')) return 'Beine';
+  if(t.includes('schulter') || t.includes('delto')) return 'Schultern';
+  if(t.includes('bizeps') || t.includes('trizeps') || t.includes('unterarm') || t.includes('arme')) return 'Arme';
+  if(t.includes('core') || t.includes('bauch')) return 'Core';
+  if(t.includes('wade') || t.includes('soleus') || t.includes('gastro')) return 'Waden';
+  return 'Sonstiges';
+}
+
+function getWorkoutsInRange(rangeKey){
+  const history = (getData('wkHistory',[])||[]).slice();
+  const now = new Date(); now.setHours(0,0,0,0);
+  if(rangeKey==='week'){
+    const weekKey = getMondayKey(new Date());
+    const start = new Date(weekKey+'T00:00:00');
+    const end = new Date(start); end.setDate(end.getDate()+7);
+    return history.filter(w=>{ if(!w||!w.date) return false; const d=new Date(w.date+'T00:00:00'); return d>=start && d<end; });
+  }
+  return history.filter(w=>{ if(!w||!w.date) return false; const d=new Date(w.date+'T00:00:00'); d.setHours(0,0,0,0); const diff=(now-d)/86400000; return diff>=0 && diff<30; });
+}
+
+function computeMuscleSums(rangeKey){
+  const items = getWorkoutsInRange(rangeKey);
+  const sums = {}; let total = 0;
+  items.forEach(w=>{
+    (w.sets||[]).forEach(s=>{
+      const kg = parseFloat(String(s.kg).replace(',', '.'));
+      const reps = parseInt(s.reps,10);
+      if(!isFinite(kg) || !isFinite(reps)) return;
+      const vol = kg*reps;
+      const info = EXERCISES[s.exName] || {};
+      const cat = muscleCategoryFromText(info.muscles);
+      sums[cat] = (sums[cat]||0) + vol;
+      total += vol;
+    });
+  });
+  return {sums,total};
+}
+
+
+function renderMuscleBreakdown(){
+  const box = document.getElementById('muscle-breakdown');
+  if(!box) return;
+  const history = (getData('wkHistory',[])||[]).slice();
+  const now = new Date(); now.setHours(0,0,0,0);
+  const last30 = history.filter(w=>{
+    if(!w || !w.date) return false;
+    const d = new Date(w.date+'T00:00:00'); d.setHours(0,0,0,0);
+    const diff = (now - d) / 86400000;
+    return diff>=0 && diff<30;
+  });
+  if(!last30.length){
+    box.innerHTML = '<div class="muscle-card"><div class="no-data" style="padding:12px 0">Noch keine Daten (letzte 30 Tage).</div></div>';
+    return;
+  }
+  const sums = {}; let total=0;
+  last30.forEach(w=>{
+    (w.sets||[]).forEach(s=>{
+      const kg = parseFloat(String(s.kg).replace(',', '.'));
+      const reps = parseInt(s.reps,10);
+      if(!isFinite(kg) || !isFinite(reps)) return;
+      const vol = kg*reps;
+      const info = EXERCISES[s.exName] || {};
+      const cat = muscleCategoryFromText(info.muscles);
+      sums[cat] = (sums[cat]||0) + vol;
+      total += vol;
+    });
+  });
+  const rows = Object.entries(sums).sort((a,b)=>b[1]-a[1]).map(([name,val])=>{
+    const pct = total>0 ? Math.round((val/total)*100) : 0;
+    return `
+      <div class="muscle-row">
+        <div class="muscle-name">${name}</div>
+        <div class="muscle-barwrap"><div class="muscle-bar" style="width:${pct}%;"></div></div>
+        <div class="muscle-pct">${pct}%</div>
+      </div>`;
+  }).join('');
+  box.innerHTML = `<div class="muscle-card"><div class="chart-title">Verteilung (letzte 30 Tage)</div><div class="chart-sub">Anteil nach bewegtetem Gewicht (kg × Wdh.)</div>${rows}</div>`;
+}
 function showActivePlanDetails(){
   if(!hasUserPlan()){
     alert('Kein aktiver Plan. Erstelle oder aktiviere zuerst einen Plan.');
@@ -1720,6 +1921,7 @@ document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){
     closeWorkoutHistory();
     closePlanDetails();
+    closeDayDetails();
   }
 });
 
@@ -2233,7 +2435,7 @@ function renderTraining(){
   (plan.days||[]).forEach((d) => {
     const card = document.createElement('div');
     card.className = 'day-card';
-    card.onclick = () => startWorkout(d.id);
+    card.onclick = () => showDayDetails(d.id);
 
     const exNames = (d.exercises||[]).map(e=>e.name).slice(0,4);
     const exText = exNames.join(' · ') + (((d.exercises||[]).length>4) ? ' · +' + ((d.exercises||[]).length-4) : '');
@@ -2365,6 +2567,30 @@ function renderHome(){
   if(statusWeek) statusWeek.textContent = weekItems.length ? (weekItems.length + ' Trainings') : '—';
   if(status30d)  status30d.textContent  = d30Items.length ? (d30Items.length + ' Trainings') : '—';
   if(statusLast) statusLast.textContent = last ? (new Date(last.date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' · ' + (last.dayName || 'Training')) : '—';
+
+  
+
+  // Mini-Stats unter "Heute"
+  try{
+    const miniWeekTrain = document.getElementById('home-mini-week-trainings');
+    const miniWeekVol = document.getElementById('home-mini-week-vol');
+    if(miniWeekTrain) miniWeekTrain.textContent = weekItems.length ? (weekItems.length + ' Trainings') : '—';
+    if(miniWeekVol) miniWeekVol.textContent = weekItems.length ? (Math.round(weekItems.reduce((a,x)=>a+(x.totalVolume||0),0)).toLocaleString('de-DE') + ' kg Volumen') : 'Noch nichts diese Woche.';
+
+    const focusMain = document.getElementById('home-mini-focus-main');
+    const focusSub = document.getElementById('home-mini-focus-sub');
+    const ms = computeMuscleSums('30d');
+    const entries = Object.entries(ms.sums||{}).sort((a,b)=>b[1]-a[1]);
+    if(!entries.length || ms.total<=0){
+      if(focusMain) focusMain.textContent = '—';
+      if(focusSub) focusSub.textContent = 'Noch keine Daten.';
+    }else{
+      const top = entries[0];
+      const pct = Math.round((top[1]/ms.total)*100);
+      if(focusMain) focusMain.textContent = top[0] + ' ' + pct + '%';
+      if(focusSub) focusSub.textContent = 'Anteil nach kg × Wdh. (30 Tage)';
+    }
+  }catch(_){ }
 
   renderWeeklyWeightCard();
 
@@ -2802,6 +3028,7 @@ function renderStats(){
   enableDragScroll(picker);
 
   renderProgressChart(selectedEx);
+  renderMuscleBreakdown();
   renderHistory();
 }
 
